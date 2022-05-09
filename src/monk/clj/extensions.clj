@@ -82,9 +82,14 @@
           (map/get m x)))
       (fn [y f]
         (if-let [m (-map y)]
-          (if-some [v (map/get m x)]
-            (if-let [v2 (f v)]
-              (map/put m x v2)))))))
+          ;; TODO there is several ways to do this
+          ;; the map/get function is not so fast because of the path keyword handling.
+          (if (contains? m x)
+            (if-let [v (f (get m x))]
+              (assoc m x v))
+            (if-some [v (map/get m x)]
+              (if-let [v2 (f v)]
+                (map/put m x v2))))))))
 
   Long
   (-lens [x]
