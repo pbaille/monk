@@ -1,0 +1,10 @@
+(ns monk.clj.protocols)
+
+(defprotocol IVal (-val [_]))
+(defprotocol IMap (-map [_]))
+(defprotocol IVec (-vec [_]))
+(defprotocol IForm (-form [_]))
+(defprotocol IStep (-step [_]))
+(defprotocol ILens (-lens [_]))
+(defprotocol ISend (-send [_ f]))
+(defprotocol ICons (-cons [_ s]))
