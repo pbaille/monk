@@ -1,0 +1,16 @@
+#+TITLE: Notes
+
+* Inbox
+** =nil= and =false=
+The old question of =false=
+Should it be considered truthy?
+Booleans are valuable data that should be decoupled from control flow ?
+For now false is not allowed and short-circuits the execution.
+This was originally intended to ease clojure integration but do not seems to still be necessary.
+The wrapping of clojure predicates into guards now occurs in =monk.core=.
+
+
+** =[:use monk.core]=
+Currently monk is intended to be 'used'.
+It is not a common practice in the clojure community for good reasons.
+It conflicts with many tools and is not clojurescript friendly.
