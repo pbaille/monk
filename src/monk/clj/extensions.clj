@@ -85,10 +85,10 @@
           ;; TODO there is several ways to do this
           ;; the map/get function is not so fast because of the path keyword handling.
           (if (contains? m x)
-            (if-let [v (f (get m x))]
+            (if-some [v (f (get m x))]
               (assoc m x v))
             (if-some [v (map/get m x)]
-              (if-let [v2 (f v)]
+              (if-some [v2 (f v)]
                 (map/put m x v2))))))))
 
   Long
@@ -101,7 +101,7 @@
         (if-let [v (-vec y)]
           (let [i (vec/element-idx v x)]
             (if-some [v1 (get v i)]
-              (if-let [v2 (f v1)]
+              (if-some [v2 (f v1)]
                 (assoc v i v2))))))))
 
   PersistentVector
@@ -120,8 +120,8 @@
 
   Fn
   (-lens [x]
-    (lens/mk (fn [y] (if-let [z (x y)] z))
-             (fn [y f] (if-let [z (x y)] (f z)))))
+    (lens/mk (fn [y] (if-some [z (x y)] z))
+             (fn [y f] (if-some [z (x y)] (f z)))))
 
   Object
   (-lens [x] (lens/= x)))

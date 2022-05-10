@@ -58,15 +58,15 @@
       (fn [y f] (if (c/= x y) (f y)))))
 
 (defn check [f]
-  (mk (fn [x] (if (f x) x))
-      (fn [x g] (if (f x) (g x)))))
+  (mk (fn [x] (u/if-not-nil (f x) x))
+      (fn [x g] (u/if-not-nil (f x) (g x)))))
 
 (defn + [l m]
   (mk (fn [x]
         (if-let [x' (get x l)] (get x' m)))
       (fn [x f]
-        (if-let [v1 (get x l)]
-          (if-let [v2 (upd v1 m f)]
+        (if-some [v1 (get x l)]
+          (if-some [v2 (upd v1 m f)]
             (upd x l (constantly v2)))))))
 
 (defn >
@@ -88,12 +88,13 @@
       (fn [x]
         (loop [xs lenses]
           (if (seq xs)
-            (or (get x (first xs))
-                (recur (next xs))))))
+            (if-some [ret (get x (first xs))]
+              ret
+              (recur (next xs))))))
       (fn [x f]
         (loop [xs lenses]
           (if (seq xs)
-            (if (get x (first xs))
+            (u/if-not-nil (get x (first xs))
               (upd x (first xs) f)
               (recur (next xs)))))))))
 
@@ -112,14 +113,14 @@
     (mk (fn [x]
           (loop [cases cases]
             (if-let [[[test then] & cases] cases]
-              (if-let [x+ (get x test)]
+              (if-some [x+ (get x test)]
                 (get x+ then)
                 (recur cases))
               (get x default))))
         (fn [x f]
           (loop [cases cases]
             (if-let [[[test then] & cases] cases]
-              (if-let [x+ (get x test)]
+              (if-some [x+ (get x test)]
                 (put x test (upd x+ then f))
                 (recur cases))
               (upd x default f)))))))
@@ -141,7 +142,7 @@
         (if (map? x)
           (loop [todo (seq (c/keys x)) done []]
             (if-let [[k & ks] todo]
-              (if-let [k (f k)]
+              (if-some [k (f k)]
                 (recur ks (conj done k)))
               (zipmap done (c/vals x))))))))
 
@@ -151,7 +152,7 @@
         (if (map? x)
           (loop [todo (seq (c/vals x)) done []]
             (if-let [[v & vs] todo]
-              (if-let [v (f v)]
+              (if-some [v (f v)]
                 (recur vs (conj done v)))
               (zipmap (c/keys x) done)))))))
 

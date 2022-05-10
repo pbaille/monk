@@ -19,12 +19,12 @@
 (defn check
   "a step that returns its input unchanged if `s succeed"
   [s]
-  (fn [x] (if (run s x) x)))
+  (fn [x] (u/if-not-nil (run s x) x)))
 
 (defn ?
   "make a step optional
    (returning input data unchanged on failure)"
-  [s] (fn [x] (c/or (send x s) x)))
+  [s] (fn [x] (if-some [ret (send x s)] ret x)))
 
 (defn >
   "conjonction (and)
@@ -33,9 +33,9 @@
   [xs]
   (fn [x]
     (loop [x x xs xs]
-      (if (c/and x xs)
-        (recur (send x (c/first xs)) (c/next xs))
-        x))))
+      (if (c/or (nil? x) (nil? xs))
+        x
+        (recur (send x (c/first xs)) (c/next xs))))))
 
 (defn <
   "disjonction (or)
@@ -44,8 +44,9 @@
   (fn [x]
     (loop [xs xs]
       (if (c/seq xs)
-        (c/or (send x (c/first xs))
-              (recur (c/next xs)))))))
+        (if-some [ret (send x (c/first xs))]
+          ret
+          (recur (c/next xs)))))))
 
 (defn cond
   "step version of cond"
@@ -57,7 +58,7 @@
     (fn [x]
       (loop [cases (c/seq (c/partition 2 xs))]
         (if-let [[[test then] & cases] cases]
-          (if-let [x+ (send x test)]
+          (if-some [x+ (send x test)]
             (send x+ then)
             (recur cases))
           (send x default))))))

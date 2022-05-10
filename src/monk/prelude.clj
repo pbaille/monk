@@ -277,6 +277,13 @@
 
 (do :misc
 
+    (defmacro if-not-nil
+      "a version of if that considers only nil as falsy"
+      [p t & [e]]
+      `(if (nil? ~p)
+         ~e
+         ~t))
+
     (defn import-defs [package m]
       (for [[ns defs] m
             sym defs]
