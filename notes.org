@@ -1,6 +1,29 @@
 #+TITLE: Notes
 
 * Inbox
+** lenses
+For now clojure functions implement lens in a trivial way.
+Beside being quite handy, it do not feels particularly right.
+Given the definition of lenses of the docs:
+"A lens a well know abstraction that is used to get a certain view of a datastructure and potentially update this view, repercuting back the changes to the original datastructure."
+The repercution part is not handled by the the default function impl.
+As an example, let's look at the `next` lens:
+#+begin_src clojure
+
+(in-ns 'monk.core)
+
+(let [L (lens/mk
+         c/next
+         ;; The update function is taking care of preserving the head of the given seq.
+         (fn [s f] (send s (> c/next f (f_ (c/cons (c/first s) _))))))]
+
+  (upd (c/range 10)
+       L
+       ($ c/inc)))
+#+end_src
+
+
+
 ** =nil= and =false=
 The old question of =false=
 Should it be considered truthy?
@@ -10,7 +33,6 @@ This was originally intended to ease clojure integration but do not seems to sti
 The wrapping of clojure predicates into guards now occurs in =monk.core=.
 *** first try
 created =false-is-a-value= branch
-
 
 ** =[:use monk.core]=
 Currently monk is intended to be 'used'.

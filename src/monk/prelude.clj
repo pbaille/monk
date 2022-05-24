@@ -34,6 +34,19 @@
 
 (do :names
 
+    (defn sym [& xs]
+      (symbol (apply str (map name xs))))
+
+    (defn ns-sym [ns & xs]
+      (symbol (str ns) (apply str (map name xs))))
+
+    (defn kebab->camel [s]
+      (let [s (name s)
+            parts (str/split s #"-")]
+        (apply str
+               (first parts)
+               (map str/capitalize (next parts)))))
+
     (defn dot-split [named]
       (vec (when named
              (str/split (name named) #"\."))))
@@ -68,9 +81,26 @@
 
 (do :collections
 
+    (defn uncons [[x & xs]]
+      [x xs])
+
     (defn holymap? [x]
       (if (map? x)
         (not (record? x))))
+
+    (defn submap [m ks]
+      (if (map? m)
+        (loop [ret {} ks ks]
+          (if-let [[k & ks] ks]
+            (if-some [v (get m k)]
+              (recur (assoc ret k v) ks))
+            ret))))
+
+    (is
+     {:a 1}
+     (submap {:a 1 :b 2} [:a]))
+
+    (isnt (submap {:a 1} [:a :b]))
 
     (defn get1 [x i]
       (cond (seq? x) (nth x i)

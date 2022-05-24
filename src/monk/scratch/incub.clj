@@ -119,18 +119,19 @@
           (t# (map/build* (c/cons x# xs#)))
           (t# (c/vec (c/cons x# xs#))))))))
 
-(u/deep-check :deftap
-              (deftap (point2 :x int? :y int?))
-              (c/= {:x 1 :y 2}
-                   (:data (point2 1 2))
-                   (:data (point2 [1 2]))
-                   (:data (point2 :x 1 :y 2))
-                   (:data (point2 {:x 1 :y 2}))))
+(comment
+  (u/deep-check :deftap
+                (deftap (point2 :x int? :y int?))
+                (c/= {:x 1 :y 2}
+                     (:data (point2 1 2))
+                     (:data (point2 [1 2]))
+                     (:data (point2 :x 1 :y 2))
+                     (:data (point2 {:x 1 :y 2}))))
 
-(u/deep-check :defmup
-              (defmup (point3 :x int? :y int?))
-              (c/= [1 2]
-                   (:data (point3 1 2))
-                   (:data (point3 [1 2]))
-                   (:data (point3 :x 1 :y 2))
-                   (:data (point3 {:x 1 :y 2}))))
+  (u/deep-check :defmup
+                (defmup (point3 :x int? :y int?))
+                (c/= [1 2]
+                     (:data (point3 1 2))
+                     (:data (point3 [1 2]))
+                     (:data (point3 :x 1 :y 2))
+                     (:data (point3 {:x 1 :y 2})))))

@@ -156,6 +156,17 @@
                 (recur vs (conj done v)))
               (zipmap (c/keys x) done)))))))
 
+(defn submap
+  "A lens that focus on a given set of keys of the target map,
+  All keys have to be present.
+  When used to update, the other keys are preserved."
+  [ks]
+  (mk (f_ (u/submap _ ks))
+      (fn [x f] (if-let [sm (u/submap x ks)]
+                 (if-let [sm2 (f sm)]
+                   (merge x sm2))))))
 
-
-
+'(upd {:a 1 :b 2 :c 3}
+     (submap [:a :b])
+     (f_ (assoc _ :d (c/+ (:a _) (:b _))
+                :no-c (:c _))))

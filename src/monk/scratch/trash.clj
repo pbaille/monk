@@ -1,0 +1,3 @@
+(ns monk.scratch.trash)
+
+()

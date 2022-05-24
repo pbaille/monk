@@ -1,5 +1,5 @@
 (ns monk.step
-  (:refer-clojure :only [fn defn loop let if-let comment])
+  (:refer-clojure :only [fn defn loop let if-let if-some comment nil?])
   (:require [clojure.core :as c]
             [monk.prelude :as u :refer [f_]]
             [monk.clj.protocols :as p :refer [-send -step]]))

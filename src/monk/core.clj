@@ -11,7 +11,9 @@
             [monk.map :as map]
             [monk.vec :as vec]
             [monk.step :as step]
-            [monk.lens :as lens])
+            [monk.lens :as lens]
+            [monk.record :as record]
+            [clojure.string :as str])
   (:import (clojure.lang IFn)))
 
 "A Thing is something that implement monk protocols:
@@ -55,7 +57,8 @@
 (def lens -lens)
 (def form -form)
 (def step -step)
-(u/import-macros km map/km)
+(u/import-macros km map/km
+                 deft record/deft)
 
 "Base instances"
 
@@ -199,11 +202,13 @@
 (defmacro deftup
   [[name & xs] & [parser]]
   (let [arity (c/count xs)
+        predicate-name (c/symbol (c/str name "?"))
         [arg1 :as argv] (c/vec (c/repeatedly arity c/gensym))
         parsed (if parser (c/list `run parser arg1) arg1)]
     (c/assert (c/> arity 1)
               "deftup: should have more than 1 members")
     `(let [t# (tup ~@xs)]
+       (def ~predicate-name t#)
        (defn ~name
          ([~arg1] (t# ~parsed))
          (~argv (~name ~argv))))))
@@ -211,13 +216,16 @@
 (defmacro defmap
   [[name & kvs] & [parser]]
   (let [arity (c/count kvs)
+        predicate-name (c/symbol (c/str name "?"))
         arg1 (c/gensym)
-        parsed (if parser (c/list `run parser arg1) arg1)]
+        parsed (if parser (c/list `run parser arg1) arg1)
+        add-type `(map/put ~(c/keyword name) true)]
     (c/assert (c/> arity 2) "defmap: should have more than 1 members")
     (c/assert (c/even? arity) "defmap: odd key-values count")
     `(let [m# (c/hash-map ~@kvs)]
+       (def ~predicate-name m#)
        (defn ~name
-         ([~arg1] (run m# ~parsed))
+         ([~arg1] (run (> m# ~add-type) ~parsed))
          ([x# & xs#] (~name (map/build* (c/cons x# xs#))))))))
 
 (defmacro defm
@@ -225,23 +233,95 @@
   (let [arity (c/count kvs)
         _ (c/assert (c/> arity 2) "defm: should have more than 1 members")
         _ (c/assert (c/even? arity) "defm: odd key-values count")
+        predicate-name (c/symbol (c/str name "?"))
+        [arg1 :as argv] (c/vec (c/repeatedly (c// arity 2) c/gensym))
+        keys (c/vec (c/take-nth 2 kvs))
+        vals (c/vec (c/take-nth 2 (c/next kvs)))
+        build `(> (cond (tup ~@vals) (c/partial c/zipmap ~keys)
+                      ~(c/zipmap keys vals))
+                  (map/put ~(c/keyword name) true))
+        main (if parse `(> ~parse ~build) build)]
+    `(do
+       (def ~predicate-name ~build)
+       (defn ~name
+        ([~arg1] (run ~main ~arg1))
+        (~argv (~name (c/zipmap ~keys ~argv)))))))
+
+(defmacro defr
+  "a wrapper around defrecord"
+  [[name & kvs]
+   & {:keys [step form verbose]}]
+  (let [arity (c/count kvs)
+        _ (c/assert (c/> arity 2) "defr: should have more than 1 members")
+        _ (c/assert (c/even? arity) "defr: odd key-values count")
+        record-name (c/symbol (str/capitalize (c/str name)))
+        map-constructor-name (c/symbol (c/str "map->" record-name))
+        predicate-name (c/symbol (c/str name "?"))
         [arg1 :as argv] (c/vec (c/repeatedly (c// arity 2) c/gensym))
         keys (c/vec (c/take-nth 2 kvs))
         vals (c/vec (c/take-nth 2 (c/next kvs)))
         build `(cond (tup ~@vals) (c/partial c/zipmap ~keys)
                      ~(c/zipmap keys vals))
-        main (if parse `(> ~parse ~build) build)]
-    `(defn ~name
-       ([~arg1] (run ~main ~arg1))
-       (~argv (~name (c/zipmap ~keys ~argv))))))
+        main `(> ~build ~map-constructor-name)
+        fields (run ($ (> c/name c/symbol)) keys)
+        form (c/or form `(c/cons '~name ~(if verbose (c/interleave keys fields) fields)))
+        step (c/or step `(fn [x#] (get ~'this x#)))]
+    `(do
+       (defrecord ~record-name ~fields
+         p/IVec (-vec [_#] ~fields)
+         p/IForm (-form [~'this] ~form)
+         IFn (invoke [~'this x#] (~step x#))
+         p/IStep (-step [~'this] ~step))
+       (def ~predicate-name ~build)
+       (defn ~name
+         ([~arg1] (run ~main ~arg1))
+         (~argv (~name (c/zipmap ~keys ~argv)))))))
+
+'(defmacro defr2
+
+  [[name & kvs] & body]
+
+  (let [arity (c// (c/count kvs) 2)
+
+        record-name (u/sym (str/capitalize (u/kebab->camel name)))
+        cast-protocol-name (u/sym "I" record-name)
+        cast-method-name (u/sym "->" name)
+        map-constructor-name (u/sym "map->" record-name)
+        predicate-name (u/sym name "?")
+
+        monk-impls (c/take-while seq? body)
+        extra-impls (c/drop-while seq? body)
+        monk-impls-expanded (c/interleave (send monk-impls ($ (> c/first p/method-name->protocol-name)))
+                                          monk-impls)
+
+        [arg1 :as argv] (c/vec (c/repeatedly arity c/gensym))
+        keys (c/vec (c/take-nth 2 kvs))
+        vals (c/vec (c/take-nth 2 (c/next kvs)))
+
+        build `(cond (tup ~@vals) (c/partial c/zipmap ~keys)
+                     ~(c/zipmap keys vals))
+        main `(> ~build ~map-constructor-name)
+        fields (run ($ u/sym) keys)]
+
+    `(do
+       (c/defprotocol ~cast-protocol-name
+         (~cast-method-name [~'_]))
+       (defrecord ~record-name ~fields
+           ~@monk-impls-expanded
+           ~@extra-impls)
+       (defn ~predicate-name [x#]
+         (c/instance? ~record-name x#))
+       (defn ~name
+         ([~arg1] (run ~main ~arg1))
+         (~argv (~name (c/zipmap ~keys ~argv)))))))
 
 (do :extra
 
     (defn one-or-many
-      "a thing that accepts either
+      "A thing that accepts either:
        - a single s
        - a collection of s
-       return a collection of s"
+       returns a collection of s."
       ([s]
        (one-or-many s :seq))
       ([s type]
@@ -254,7 +334,7 @@
        (< (> s wrapper)
           (> guard c/not-empty ($ s))))))
 
-(do :check
+(comment :check
 
     (u/deep-check :deftup
 
@@ -313,3 +393,30 @@
                          (p6 1 1)
                          (p6 [1 1])
                          (p6 {:x 1 :y 1}))]}))
+
+(do :defr-check
+
+    (defr (point :x int? :y int?)
+      :step (fn [this _] ["i'm a point:" this]))
+
+    (let [p (point 1 2)]
+      (u/check
+       (u/is
+        [true
+         ["i'm a point" p]
+         1
+         (list 'point 1 2)]
+        [(point? p)
+         (run p :something)
+         (get p 0)
+         (form (point 1 2))]))))
+
+(comment :defr2-check
+
+         (c/macroexpand-1 '(defr2 (box :content int?)
+            (-step [this] (fn [_] this))))
+
+         (defr2 (box :content int?)
+            (-step [this] (fn [_] this)))
+
+         (box :content 1))

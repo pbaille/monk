@@ -172,14 +172,17 @@
 
   [:shortcircuiting
    "put can only change existing values"
-    (c/nil? (put {} :a 1))
+   (c/nil? (put {} :a 1))
 
-    "Coming from clojure it could seems unconvenient, but it is coherent with the way lens are working."
-    "When a lens get function return nil it shortcircuits the computation. "
-    (c/= {:a {:b 1} :c 2}
-         (put {}
-              :a.b 1
-              :c 2))
+   "Coming from clojure it could seems unconvenient, but it is coherent with the way lens are working."
+   "When a lens focus on nothing, e.g: the get function return nil, it shortcircuits the update and returns nil immediately."
+   "`put` being a thin wrapper over `upd`, returning nil here is indeed correct."
+   "In order to assoc values to non existant keys we have to wrap our keyword lens with something else."
+
+   ; TODO those 2 expressions do not work here, we need a way to simply add a non existant entry
+   '(put {} :a (default 1))
+   '(put {} (? :a) 1)
+
    ]
 
   [:instances
@@ -479,7 +482,14 @@
 
 
 
+(comment :scratch
+    "the next lens"
+    (let [L (lens/mk
+             c/next
+             (fn [s f] (send s (> c/next f (f_ (c/cons (c/first s) _))))))]
+      (upd (c/range 10)
+           L
+           ($ c/inc)))
 
 
-
-
+    (upd {:a true} :a c/not))
