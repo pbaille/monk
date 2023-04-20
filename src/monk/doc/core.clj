@@ -1,12 +1,15 @@
 (in-ns 'monk.core)
 
+
 (u/check!)
+
 
 "This code walkthrough is also a test suite where each `deep-check` block explains a part of the `monk` package.
  This is also a gradual introduction that should be read in this very order."
 
 "Every value inside those `deep-checks` blocks has to be deeply truthy,
  a `nil` or a `false` occuring anywhere in it will throw a meaningful error message "
+
 
 (u/deep-check :km
 
@@ -183,6 +186,18 @@
    '(put {} :a (default 1))
    '(put {} (? :a) 1)
 
+   ; it could be done like this but is not really compelling
+
+   (let [f (< {:a c/inc}
+              (f_ (c/assoc _ :a 0)))]
+     [(c/= {:a 0}
+           (run f {}))
+      (c/= {:a 1}
+           (run f {:a 0}))])
+
+   (upd {}
+        (lens/default-key :a 0)
+        c/inc)
    ]
 
   [:instances
@@ -216,8 +231,8 @@
           (get [0 0] [c/inc c/dec]))
      (c/= [1]
           (get [1] [pos?]))
-     "the evaluation is shortcircuited on the first failure
-      here, the first element (0) do not pass the first lens (pos?) so nil is immediately returned"
+     "The evaluation is shortcircuited on the first failure.
+      Here, the first element (0) do not pass the first lens (pos?) so nil is immediately returned."
      (c/nil? (get [0 -1 -2]
                   [pos? u/boom neg?]))
      "Of course vector lenses can contain any lenses"
@@ -226,7 +241,7 @@
                [:a (c/list :b :c 2)]))]
 
     [:maps
-     "Like vectors map lenses let you operates on different subparts of your data at once"
+     "Like vectors, map lenses let you operates on different subparts of your data at once."
      "In those examples I assume map literals to be ordered (since it is the case for small ones. e.g (< (count m) 8))"
      (c/= {:a 0,
            :b 1}
@@ -309,20 +324,20 @@
   [:conclusion
    "lens seems to be a fundamental tool in 'data-oriented' programming (as far as my intuition of this idea goes)"
    "as always in this library we will try to make use of every possible clojure value in a meaningful way in the given context (here lenses)"
-   "for further study please see source code that contains extra lenses and lens-constructors"])
+   "for further study please see `monk.lens` source code that contains extra lenses and lens-constructors"])
 
 
 
 (u/deep-check :step
 
   [:introduction
-   "The idea of the step namespace is to be able to build and compose functions of arity 1"
+   "The idea of the `monk.step` namespace is to be able to build and compose functions of arity 1"
    "From now, I will call this kind of function a 'step'"
    "As in the lens namespace, the idea is to be able to turn any clojure value into such functions ('step)"]
 
   [:instances
 
-   "in those examples we will use the 'run function to execute a 'step on something"
+   "in those examples we will use the `monk.core/run` function to execute a 'step on something"
 
    [:function
     "no surprise a function is already a step"
@@ -333,14 +348,14 @@
     [:vectors
      "as lenses do, vectors represent zipped step,
      it do not care about the input to be of the same size as the step.
-     (if you want to be more strict about this, you can use tuples)
+     (if you want to be more strict about this, you can use `monk.core/tuple`)
      [c/inc dec] is equivalent to {0 c/inc 1 dec}"
      (c/= [1 0]
           (run [c/inc c/dec]
             [0 1]))]
 
     [:maps
-     "map are interesting because it let you benefits from the power of lenses"
+     "maps are interesting when used as steps because they let you use lenses in conjonctions of other steps."
      "in a 'step map, each key is a lens and each value is a step
       the lens (key) will be used to upd the received structure with the corresponding step (val)"
      (c/= {:a 1 :b 0}
@@ -381,10 +396,10 @@
                #(get % :b)
                (k 1))]
       (c/=
-        1
-        (run f {:a 1 :b 2})
-        (run f {:b 1})
-        (run f {:c 3})))]
+       1
+       (run f {:a 1 :b 2})
+       (run f {:b 1})
+       (run f {:c 3})))]
 
    [:>
     "AND step"
@@ -478,7 +493,6 @@
    "You may argue that functions are opaque and therefore composition should be limited but:"
 
    "We will talk further about the 'form function"])
-
 
 
 

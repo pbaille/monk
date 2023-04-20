@@ -1,8 +1,10 @@
 (ns monk.lens
   (:refer-clojure :exclude [i get + < > = keys vals cond])
-  (:require [clojure.core :as c]
-            [monk.clj.protocols :as p :refer [-step -lens]]
-            [monk.prelude :as u :refer [f_]]))
+  (:require
+   [clojure.core :as c]
+   [monk.clj.protocols :as p :refer [-lens -step -map]]
+   [monk.map :as map]
+   [monk.prelude :as u :refer [f_]]))
 
 ;; base
 ;; ---------------------------------------------------------------------------------------------------------------------
@@ -170,3 +172,12 @@
      (submap [:a :b])
      (f_ (assoc _ :d (c/+ (:a _) (:b _))
                 :no-c (:c _))))
+
+(defn default-key
+  "there is no good way to handle map non existant keys
+  let's try some things"
+  [k default]
+  (mk (fn [x] (if-let [m (-map x)] (if-some [v (map/get m k)] v default)))
+      (fn [x f] (if-let [m (-map x)]
+                 (if-some [v' (f (if-some [v (map/get m k)] v default))]
+                   (c/assoc m k v'))))))

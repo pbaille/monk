@@ -92,7 +92,11 @@
                       (put m k (may-build v)))
                     {} x)))
       ([x & xs]
-       (build* (cons x xs)))))
+       (build* (cons x xs))))
+
+    (defn upd* [target xs]
+      (reduce (fn [_ [p f]] (upd _ p f))
+              target (partition 2 xs))))
 
 (do :syntax
 
