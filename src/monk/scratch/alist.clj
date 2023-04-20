@@ -1,4 +1,5 @@
-(ns monk.scratch.alist)
+(ns monk.scratch.alist
+  "a simple association list experiement with basic operations: put, find, rem.")
 
 (def zero ())
 
