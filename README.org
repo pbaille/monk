@@ -1,0 +1,6 @@
+* Monk
+a collection of tools to compose functions
+
+   [[file:src/monk/doc/core.clj][intro]]
+
+   [[file:src/monk/doc/zen.png]]
