@@ -4,3 +4,6 @@
 /.nrepl-port
 /monk.iml
 **/.DS_Store
+/.calva/
+/.clj-kondo/.cache/
+/.lsp/
