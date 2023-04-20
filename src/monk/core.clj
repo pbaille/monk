@@ -1,4 +1,5 @@
 (ns monk.core
+  {:clj-kondo/config '{:linters {}}}
   (:refer-clojure :only [let fn comment
                          defn defmacro defrecord defprotocol
                          extend-protocol])
@@ -57,8 +58,10 @@
 (def lens -lens)
 (def form -form)
 (def step -step)
-(u/import-macros km map/km
-                 deft record/deft)
+
+(u/import-macros
+ km map/km
+ deft record/deft)
 
 "Base instances"
 

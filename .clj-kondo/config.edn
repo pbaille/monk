@@ -1,0 +1,7 @@
+{:linters {:missing-else-branch {:level :off}
+           :redundant-do {:level :off}
+           :unused-value {:level :off}
+           :redefined-var {:level :off}
+           :clojure-lsp/unused-public-var {:level :off}}
+ :hooks {:analyze-call {monk.core/deftup hooks.monk.core/deftup
+                        monk.core/defma pouetpouet}}}
