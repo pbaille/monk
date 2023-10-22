@@ -307,6 +307,9 @@
 
 (do :misc
 
+    (defn predicate->guard [f]
+      (fn [x] (if (f x) x nil)))
+
     (defmacro if-not-nil
       "a version of if that considers only nil as falsy"
       [p t & [e]]
