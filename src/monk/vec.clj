@@ -9,7 +9,7 @@
 
 (do :indexes
 
-    ;; there is to kind of positions we have to deal with when working on sequential datastructures
+    ;; there is two kind of positions we have to deal with when working on sequential datastructures
     ;; the most common is what I will call here an 'element-idx', it simply points to an actual element of the data structure
     ;; a negative element-idx means that we start from the last element of the sequence
     ;; -1 points to the last element, -2 to the one before it etc...
