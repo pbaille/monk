@@ -106,7 +106,10 @@
 
   PersistentVector
   (-lens [x]
-    (-lens (zipmap (range) x)))
+    ;; it could be written more concisely like this:
+    ;; (-lens (zipmap (range) x))
+    ;; but it is more precise like this (order matter)
+    (lens/> (map-indexed (fn [i x] (MapEntry. i x)) x)))
 
   MapEntry
   (-lens [[k v]]
@@ -121,7 +124,9 @@
   Fn
   (-lens [x]
     (lens/mk (fn [y] (if-some [z (x y)] z))
-             (fn [y f] (if-some [z (x y)] (f z)))))
+             (fn [y f]
+               (u/boom "upd impl for Fns is not defined")
+               #_(if-some [z (x y)] (f z)))))
 
   Object
   (-lens [x] (lens/= x)))
