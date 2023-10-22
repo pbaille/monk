@@ -99,6 +99,11 @@
          {:content x}
          (c/list 'check (form x))))
 
+(defn guard
+  "build a check lens from a unary predicate."
+  [f]
+  (check (u/predicate->guard f)))
+
 (defn =
   "equal"
   [x]
@@ -168,12 +173,22 @@
 
       (c/doseq [sym core-predicates]
         (c/eval (c/list 'def sym
-                        (c/list `check
+                        (c/list `guard
                                 (c/symbol "clojure.core" (c/name sym)))))))
 
     (let [e (Exception. "falsy values predicate do not work here")]
       (defn nil? [_] (throw e))
       (defn false? [_] (throw e))))
+
+(do :arithmetic
+    (defn gt [x]
+      (guard #(c/> % x)))
+    (defn gte [x]
+      (guard #(c/>= % x)))
+    (defn lt [x]
+      (guard #(c/< % x)))
+    (defn lte [x]
+      (guard #(c/<= % x))))
 
 (defn map
   "map of k v"
@@ -339,63 +354,69 @@
 
 (comment :check
 
-    (u/deep-check :deftup
+         (u/deep-check
+          [(c/= 2 (get 2 (gt 1)))
+           (c/nil? (get 2 (gt 3)))
+           (c/= 2 (get 2 (gte 2)))
+           (c/nil? (get 2 (gte 3)))])
 
-                  {:simple
-                   [(deftup (p1 int? int?))
-                    (c/= [1 2]
-                         (p1 1 2)
-                         (p1 [1 2]))]
+         (u/deep-check :deftup
 
-                   :with-parser
-                   [(deftup (p2 int? int?)
-                      (? (> int? (f_ [_ _]))))
-                    (c/= [1 1]
-                         (p2 1))]})
+                       {:simple
+                        [(deftup (p1 int? int?))
+                         (c/= [1 2]
+                              (p1 1 2)
+                              (p1 [1 2]))]
 
-    (u/deep-check :defmap
+                        :with-parser
+                        [(deftup (p2 int? int?)
+                           (? (> int? (f_ [_ _]))))
+                         (c/= [1 1]
+                              (p2 1))]})
 
-                  {:simple
-                   [(defmap (p3 :x int? :y int?))
+         (u/deep-check :defmap
 
-                    (c/= {:x 1 :y 2}
-                         (p3 {:x 1 :y 2})
-                         (p3 :x 1 :y 2)
-                         (p3 :x 1 {:y 2})
-                         (p3 {:x 1} {:y 2}))
+                       {:simple
+                        [(defmap (p3 :x int? :y int?))
 
-                    (c/= {:x 1 :y 2 :z "iop"}
-                         (p3 :x 1 {:y 2 :z "iop"}))
+                         (c/= {:x 1 :y 2}
+                              (p3 {:x 1 :y 2})
+                              (p3 :x 1 :y 2)
+                              (p3 :x 1 {:y 2})
+                              (p3 {:x 1} {:y 2}))
 
-                    (c/= nil
-                         (p3 {:x 1/2 :y 2}))]
+                         (c/= {:x 1 :y 2 :z "iop"}
+                              (p3 :x 1 {:y 2 :z "iop"}))
 
-                   :with-parser
-                   [(defmap (p4 :x int? :y int?)
-                      (? (> int? (f_ {:x _ :y _}))))
-                    (c/= {:x 1 :y 1}
-                         (p4 1)
-                         (p4 :x 1 :y 1)
-                         (p4 :x 1 {:y 1}))]})
+                         (c/= nil
+                              (p3 {:x 1/2 :y 2}))]
 
-    (u/deep-check :defm
-                  {:simple
-                   [(defm (p5 :x int?
-                              :y int?))
+                        :with-parser
+                        [(defmap (p4 :x int? :y int?)
+                           (? (> int? (f_ {:x _ :y _}))))
+                         (c/= {:x 1 :y 1}
+                              (p4 1)
+                              (p4 :x 1 :y 1)
+                              (p4 :x 1 {:y 1}))]})
 
-                    (c/= (p5 1 2)
-                         (p5 [1 2])
-                         (p5 {:x 1 :y 2}))]
-                   :with-parser
-                   [(defm (p6 :x int?
-                              :y int?)
-                      (? (> int? (f_ [_ _]))))
+         (u/deep-check :defm
+                       {:simple
+                        [(defm (p5 :x int?
+                                   :y int?))
 
-                    (c/= {:x 1 :y 1}
-                         (p6 1)
-                         (p6 1 1)
-                         (p6 [1 1])
-                         (p6 {:x 1 :y 1}))]}))
+                         (c/= (p5 1 2)
+                              (p5 [1 2])
+                              (p5 {:x 1 :y 2}))]
+                        :with-parser
+                        [(defm (p6 :x int?
+                                   :y int?)
+                           (? (> int? (f_ [_ _]))))
+
+                         (c/= {:x 1 :y 1}
+                              (p6 1)
+                              (p6 1 1)
+                              (p6 [1 1])
+                              (p6 {:x 1 :y 1}))]}))
 
 (do :defr-check
 
