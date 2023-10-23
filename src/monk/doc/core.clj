@@ -13,97 +13,97 @@
 
 (u/deep-check :km
 
-  [:intro
-   "`km` is a shorthand for 'keyword-map'"
-   "Keyword-maps represent, I think, 95% of our usage of clojure hash-maps, so it clearly deserves some special care."
-   "`monk.map` provides some tools for building and dealing with such maps"]
+              [:intro
+               "`km` is a shorthand for 'keyword-map'."
+               "Keyword-maps represent, I think, 95% of our usage of clojure hash-maps, so it seems to deserves some special care."
+               "The `monk.map` namespace provides some tools for building and dealing with such maps."]
 
-  [:building
+              [:building
 
-   "The 'km macro is intended to ease the building of keyword-maps"
-   "Some conventions will help to acheive this:"
-   "- map keys are not namespaced and do not contains dots"
-   "- if a key contains a dot it is interpreted as a path (e.g :a.b -> [:a :b])"
-   "`km` macro accepts any number of arguments that can be other kms or flat keyvalues seq (as `clojure.core/hash-map` takes)"
+               "The `km` macro is intended to ease the building of keyword-maps"
+               "Some conventions will help to acheive this:"
+               "- map keys are not namespaced and do not contains dots"
+               "- if a key contains a dot it is interpreted as a path (e.g :a.b -> [:a :b])"
+               "`km` macro accepts any number of arguments that can be other kms or flat keyvalues seq (as `clojure.core/hash-map` takes)"
 
-   (c/= {:a 1 :b {:c 2 :d 3}}
-        (km {:a 1 :b {:c 2 :d 3}})
-        (km :a 1 :b {:c 2 :d 3})
-        (km {:a 1 :b.c 2 :b.d 3})
-        (km :a 1 :b.c 2 :b.d 3)
-        (km {:a 1 :b.c 2} :b.d 3))]
+               (c/= {:a 1 :b {:c 2 :d 3}}
+                    (km {:a 1 :b {:c 2 :d 3}})
+                    (km :a 1 :b {:c 2 :d 3})
+                    (km {:a 1 :b.c 2 :b.d 3})
+                    (km :a 1 :b.c 2 :b.d 3)
+                    (km {:a 1 :b.c 2} :b.d 3))]
 
-  [:operating
+              [:operating
 
-   "In conjonction of an handy builder this namespace exposes common operations on keyword-maps"
+               "In conjonction of an handy builder this namespace exposes common operations on keyword-maps"
 
-   (let [m {:a 1 :b {:c 2 :d 3}}]
+               (let [m {:a 1 :b {:c 2 :d 3}}]
 
-     [:operations
-      "`get`, `put` and `upd` are available."
-      [:get
-       (c/= 1 (map/get m :a))
-       (c/= 2 (map/get m :b.c))
-       (c/= 3 (map/get m :b.d))
-       :partial-application
-       (let [getter (map/get :b.c)]
-         (c/= 2 (getter {:a 1 :b {:c 2 :d 3}})))]
+                 [:operations
+                  "`get`, `put` and `upd` are available."
+                  [:get
+                   (c/= 1 (map/get m :a))
+                   (c/= 2 (map/get m :b.c))
+                   (c/= 3 (map/get m :b.d))
+                   :partial-application
+                   (let [getter (map/get :b.c)]
+                     (c/= 2 (getter {:a 1 :b {:c 2 :d 3}})))]
 
-      [:put
-       "Works like assoc(-in):"
-       (c/= (map/put m :a 2) (c/assoc m :a 2))
-       (c/= (map/put m :b.c 3) (c/assoc-in m [:b :c] 3))
-       "But is variadic (contrary to assoc-in):"
-       (c/= (map/put m
-                     :b.c 3
-                     :b.e 5)
-            (c/-> m
-                  (c/assoc-in [:b :c] 3)
-                  (c/assoc-in [:b :e] 5)))
-       :partial-application
-       (let [putter1 (map/put :b.d)
-             putter2 (map/put :b.d 4)]
-         (c/= {:a 1 :b {:c 2 :d 4}}
-              (putter1 m 4)
-              (putter2 m)))]
+                  [:put
+                   "Works like assoc(-in):"
+                   (c/= (map/put m :a 2) (c/assoc m :a 2))
+                   (c/= (map/put m :b.c 3) (c/assoc-in m [:b :c] 3))
+                   "But is variadic (contrary to assoc-in):"
+                   (c/= (map/put m
+                                 :b.c 3
+                                 :b.e 5)
+                        (c/-> m
+                              (c/assoc-in [:b :c] 3)
+                              (c/assoc-in [:b :e] 5)))
+                   :partial-application
+                   (let [putter1 (map/put :b.d)
+                         putter2 (map/put :b.d 4)]
+                     (c/= {:a 1 :b {:c 2 :d 4}}
+                          (putter1 m 4)
+                          (putter2 m)))]
 
-      [:upd
-       "Works like update(-in):"
-       (c/= (map/upd m :a c/inc) (c/update m :a c/inc))
-       (c/= (map/upd m :b.c c/inc) (c/update-in m [:b :c] c/inc))
-       "upd is variadic too:"
-       (c/= (map/upd m
-                     :a c/inc
-                     :b.c c/inc
-                     :b.d c/dec)
-            (c/-> (c/update m :a c/inc)
-                  (c/update-in [:b :c] c/inc)
-                  (c/update-in [:b :d] c/dec)))
-       :partial-application
-       (let [updater1 (map/upd :b.d)
-             updater2 (map/upd :b.d c/inc)]
-         (c/= {:a 1 :b {:c 2 :d 4}}
-              (updater1 m c/inc)
-              (updater2 m)))]])]
+                  [:upd
+                   "Works like update(-in):"
+                   (c/= (map/upd m :a c/inc) (c/update m :a c/inc))
+                   (c/= (map/upd m :b.c c/inc) (c/update-in m [:b :c] c/inc))
+                   "upd is variadic too:"
+                   (c/= (map/upd m
+                                 :a c/inc
+                                 :b.c c/inc
+                                 :b.d c/dec)
+                        (c/-> (c/update m :a c/inc)
+                              (c/update-in [:b :c] c/inc)
+                              (c/update-in [:b :d] c/dec)))
+                   :partial-application
+                   (let [updater1 (map/upd :b.d)
+                         updater2 (map/upd :b.d c/inc)]
+                     (c/= {:a 1 :b {:c 2 :d 4}}
+                          (updater1 m c/inc)
+                          (updater2 m)))]])]
 
-  [:extra-considerations
-   "The get, put and upd operations are in fact macros !"
-   "The main pain with macros is that it do not compose with regular functions, you can't 'comp, 'apply or 'map a macro, but here this limitation do not really occur."
-   "This is because `get`, `put` and `upd` partial arities let you emit functions you need at compile time. "
-   "e.g: `get`, `put` and `upd` are not functions but `(get :a)`, `(put :b.c 2)`, `(upd :a)`, `(upd :b.c c/inc)` are indeed functions !"
-   (c/= [1 2 3]
-        (c/mapv (map/get :a.b) [{:a {:b 1}} {:a {:b 2}} {:a {:b 3}}]))
-   (c/= [{:a 1} {:a 2}]
-        (c/mapv (map/upd :a c/inc) [{:a 0} {:a 1}]))
-   "One could argue that variadic arities of put and upd are not partialisables, for this 2 more macro exists"
-   (let [putter (map/put_ :a 1 :b.c 2)]
-     (c/= {:foo :bar, :a 1, :b {:c 2}}
-          (putter {:foo :bar})))
-   (let [updater (map/upd_ :a c/inc :b.c c/dec)]
-     (c/= {:a 2 :b {:c 1}}
-          (updater {:a 1 :b {:c 2}})))
-   "Under the hood, all this compiles to clojure's `get-in` `assoc-in` and `update-in` forms."
-   "Dot keywords representing paths (e.g `:a.b.c`) are turned into regular clojure paths at compile time so there is no real performance penalty."])
+              [:extra-considerations
+               "The `get`, `put` and `upd` operations are in fact macros !"
+               "The main pain with macros is the fact that they do not compose with regular functions, you can't `comp`, `apply` or `map` a macro, but here this limitation do not really occur."
+               "This is because `get`, `put` and `upd` partial arities let you emit functions you need at compile time. "
+               "e.g: `get`, `put` and `upd` are not functions but `(get :a)`, `(put :b.c 2)`, `(upd :a)`, `(upd :b.c c/inc)` are functions!"
+               (c/= [1 2 3]
+                    (c/mapv (map/get :a.b) [{:a {:b 1}} {:a {:b 2}} {:a {:b 3}}]))
+               (c/= [{:a 1} {:a 2}]
+                    (c/mapv (map/upd :a c/inc) [{:a 0} {:a 1}]))
+               "One could argue that variadic arities of put and upd are not partialisables, for this 2 more macro exists"
+               (let [putter (map/put_ :a 1 :b.c 2)]
+                 (c/= {:foo :bar, :a 1, :b {:c 2}}
+                      (putter {:foo :bar})))
+               (let [updater (map/upd_ :a c/inc :b.c c/dec)]
+                 (c/= {:a 2 :b {:c 1}}
+                      (updater {:a 1 :b {:c 2}})))
+               "Under the hood, all this compiles to clojure's `get-in` `assoc-in` and `update-in` forms."
+               "Dot keywords representing paths (e.g `:a.b.c`) are turned into regular clojure paths at compile time so there is no real performance penalty."])
 
 
 
@@ -123,7 +123,7 @@
                "Here some examples with keyword and idx lenses."
 
                "Keyword lenses simply denotes the targetting of a key in a map. Like in the `monk.map` namespace, keywords can contain dots to denote nested paths. (e.g: `:a.b.c`)"
-               "In a similar way, Integers lenses denotes the targetting of an index in a vector. Negatives indexes are supported to access an element from the end of the vector."
+               "In a similar way, integers lenses denotes the targetting of an index in a vector. Negatives indexes are supported to access an element from the end of the vector."
 
                [:get
                 (c/= 1
@@ -179,7 +179,7 @@
                "It can be surprising when trying to `put` a non existant key:"
                (c/nil? (put {} :a 1))
 
-               "Coming from clojure it could seems unconvenient, but it is coherent with the way lens are working."
+               "Coming from clojure it could seems unconvenient, but it is coherent with the way monk's lenses are working."
                "When a lens focus on nothing, e.g: the get function return nil, it shortcircuits the update and returns nil immediately."
                "`put` being a thin wrapper over `upd`, returning nil here is therefore correct."
                "In order to assoc values to non existant keys we have to wrap our keyword lens with something else."
@@ -253,6 +253,7 @@
                 "Then we need to go back from the view to the original value."
                 "But in order to do so we would have to be aware that the opposite operation of increment is decrement."
                 "Sadly there is no simple way to infer this, for this reason, functions have no `upd` impl, and simply throws an error instead."
+                "For this reason, try to use `upd` with function lenses will throw an error."
                 "Some experiments have been done regarding this limitation without clear success in `monk.scratch.lenses`"
 
                 [:examples
@@ -263,13 +264,13 @@
                  #_(upd 0 c/inc c/inc)]
 
                 [:single-argument-predicates
-                 "Functions that can return true or false are called predicates."
+                 "Functions that can return `true` or `false` are called predicates."
                  "Many predicates take only one argument, asking a simple question about it."
                  "For this kind of predicate, we can meaningfully provide an `upd` implementation."
                  "Therefore, every single arity predicate of clojure.core has its pendant in monk.core"
                  "Their return value (a boolean) is discarded, and the argument is returned unchanged indicated success (true), or nil is returned indicated failure (false)."
                  "The reason for this choice is that this kind of predicate based lenses are really powerful as a control flow mecanism."
-                 "Returning true or false is nice, but as we will see later on, returning the given value or nil is handier when you want your value to flow thru several functions."
+                 "Returning `true` or `false` is nice, but as we will see later on, returning the given value or `nil` is handier when you want your value to flow thru several functions."
 
                  [:get
                   (c/= 1 (get 1 number?))
@@ -284,10 +285,31 @@
                      (get "foo" "foo"))
                 (c/nil? (get "foo" "bar"))]]
 
+              [:identity
+               "The `id` lens in the no op lens."
+               "As `clojure.core/identity` it could appear useless at first glance but is actually useful in certain compositions."
+               (c/= 1 (get 1 id))
+               (c/= 2 (upd 1 id c/inc))
+               (c/= "hello" (get "hello" id))]
+
+              [:never
+               "The other trivial lens, the `never` lens is always failing."
+               "Like `id` it is mainly useful in some compositions."
+               (c/nil? (get 1 never))
+               (c/nil? (upd 1 never c/inc))]
+
               [:constructors
 
+               [:constant
+                "The `k` constructor let you build a constant lens."
+                "like `id` and `never` it is trivial in itself but useful for composition."
+                "The `get` function will always return the value given to `k` (in following examples: the 'hello' string)."
+                (c/= "hello" (get 1 (k "hello")))
+                "The `upd` operation discard the given transformation."
+                (c/= "hello" (upd 1 (k "hello") u/boom))]
+
                [:equality
-                "As we've just seen, values like strings, symbols, chars etc... are `equality` lenses, meaning that they succeed only on a value that is equal to them."
+                "As we've seen, values like strings, symbols, chars etc... are `equality` lenses, meaning that they succeed only on a value that is equal to them."
                 (c/= "foo" (get "foo" "foo"))
                 (c/= "Foo" (upd "foo" "foo" str/capitalize))
                 (c/nil? (get "foo" "bar"))
@@ -311,26 +333,97 @@
 
                [:flow
                 "We need some basic ways to compose lenses togethers."
-                "We already seen the most simple way to linearly compose lenses with the :seq section above."
-                "Seq lenses represent something like an AND."
-                "But we definitively need an OR, for this we use the '< lens constructor."
-                "The use of '< to represent OR can be confusing at first, but actually its shape is expressing pretty clearly its forking/diverging behavior."
-                (let [not-zero? (< pos? neg?)]
-                  [(c/= 1 (get 1 not-zero?))
-                   (c/= -1 (get -1 not-zero?))
-                   (c/nil? (get 0 not-zero?))])
-                "< can take any number of arguments of course"
-                (let [x (< :a :b :c 0)]
-                  (c/= 1
-                       (get {:a 1} x)
-                       (get {:b 1} x)
-                       (get {:c 1} x)
-                       (get [1 2 3] x)))]]
+
+                [:thread
+                 "The `>` lens denotes linear composition of lenses, it can be thaught of as the AND lens."
+                 "As we've seen studying the lens implementation of seqs, lenses can be composed linearly."
+                 "It can also be done more explicitely using the `>` constructor."
+                 "Keeping in mind the shortcircuiting behavior of such linear composition, it can also be regarded as an AND operation."
+                 (c/= 1 (get 1 (> number? pos? odd?)))
+                 (c/nil? (get "hello" (> number? u/boom)))
+                 "The execution is shortcircuited as soon as a lens fails."]
+
+                [:fork
+                 "The `<` lens is the forking lens, it can be thaught of as the OR lens."
+                 "The use of `<` to represent OR can be confusing at first, but actually its shape is expressing pretty clearly its forking/diverging behavior."
+                 (let [not-zero? (< pos? neg?)]
+                   [(c/= 1 (get 1 not-zero?))
+                    (c/= -1 (get -1 not-zero?))
+                    (c/nil? (get 0 not-zero?))])
+                 "`<` can take any number of arguments of course"
+                 (let [x (< :a :b :c 0)]
+                   (c/= 1
+                        (get {:a 1} x)
+                        (get {:b 1} x)
+                        (get {:c 1} x)
+                        (get [1 2 3] x)))]
+
+                [:mixing
+                 "By using `>` and `<` together you can define more complex lenses:"
+                 (let [l (< (> vector? 0)
+                            (> map? (< :a :A)))]
+                   [(c/= 1
+                         (get [1 2 3] l)
+                         (get {:a 1 :b 2} l)
+                         (get {:A 1 :b 2} l))
+                    (c/= [0 2 3] (upd [1 2 3] l c/dec))
+                    (c/= {:a 0 :b 2} (upd {:a 1 :b 2} l c/dec))
+                    (c/nil? (get "hello" l))])]
+
+                [:cond
+                 "The `cond` constructor let you build a conditional lens, it is semantically analog to `clojure.core/cond` but for lenses."
+                 "It takes a flat list of pairs, like `clojure.core/cond`, but every argument is interpreted as a lens."
+                 "The first left side lens that succeed will indicate that the corresponding right side lens should be used."
+                 (let [l (cond vector? 0
+                               map? :a
+                               number? pos?)]
+                   [(c/= 1
+                         (get [1 2 3] l)
+                         (get {:a 1 :b 2} l)
+                         (get 1 l))
+                    (c/= [0 2 3] (upd [1 2 3] l c/dec))
+                    (c/= {:a 0 :b 2} (upd {:a 1 :b 2} l c/dec))
+                    (c/nil? (get "hello" l))
+                    (c/nil? (upd "hello" l u/boom))])
+                 "It is important to understand that when the left part matches, the choice is made, even if the right part shortcircuit the operation."
+                 "Here a little illustration of the difference between `cond` and the kind of composite lens we've seen in the previous section."
+                 (let [l (cond pos? (gt 4)
+                               number? id)
+                       m (< (> pos? (gt 4))
+                            (> number? id))]
+                   [(c/= 5 (get 5 l))
+                    (c/= -1 (get -1 l))
+                    "the following expression returns `nil` because the first left side lens (`pos?`) is succeeding."
+                    (c/nil? (get 3 l))
+                    "Even if the second branch (`number? id`) would have been successful."
+                    (c/= 3 (get 3 m))])]
+
+                [:optional
+                 "The `?` lens construction let you build an optional lens."
+                 "An optional lens is a lens that may do something, or nothing..."
+                 "This lens turns negative numbers to positive numbers, but any non negative number value flows thru it unchanged."
+                 (let [absolute-lens (? (> number? neg? (c/partial c/* -1)))]
+                   [(c/= 10
+                         (get -10 absolute-lens)
+                         (get 10 absolute-lens))
+                    (c/= "hello" (get "hello" absolute-lens))])
+                 "the same behavior is achievable using `cond though:`"
+                 (let [absolute-lens (cond (> number? neg?) (c/partial c/* -1)
+                                           id)]
+                   [(c/= 10
+                         (get -10 absolute-lens)
+                         (get 10 absolute-lens))
+                    (c/= "hello" (get "hello" absolute-lens))])
+                 "Or with `<`"
+                 (< (> number? neg? (c/partial c/* -1))
+                    id)]]]
 
               [:conclusion
                "Lens seems to be a fundamental tool in 'data-oriented' programming."
-               "As always within this library, we will try to make use of every possible clojure value in a meaningful way in the given context (here lenses)."
-               "For further study please see `monk.lens` source code that contains extra lenses and lens-constructors."])
+               "As always within this library, we are trying to make use of every possible clojure value in a meaningful way in the given context (here lenses)."
+               "In this section we introduced a powerful and composable way to target/select some parts of our data."
+               "In the next section we will introduce the same kind of composition tools for describing transformations that we can apply to those targets/selections, and everything will come together."
+               "For further study of lenses, please see `monk.lens` source code that contains extra lenses and lens-constructors."])
 
 
 
@@ -338,8 +431,8 @@
 
               [:introduction
                "The idea of the `monk.step` namespace is to be able to build and compose functions of arity 1"
-               "From now, I will call this kind of function a 'step'"
-               "As in the lens namespace, the idea is to be able to turn any clojure value into such functions ('step)"]
+               "From now on, I will call this kind of function a 'step'"
+               "As in the `monk.lens` namespace, the idea is to be able to turn any clojure value into such functions ('step)"]
 
               [:instances
 
