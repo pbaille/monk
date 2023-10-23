@@ -15,7 +15,7 @@
 ;; instances
 ;; ---------------------------------------------------------------------------------------------------------------------
 
-(def k
+(def freeze
   "constant"
   (mk identity (fn [x _] x)))
 
@@ -54,6 +54,10 @@
 
 ;; constructors
 ;; ---------------------------------------------------------------------------------------------------------------------
+
+(defn k [x]
+  (mk (constantly x)
+      (constantly x)))
 
 (defn = [x]
   (mk (fn [y] (if (c/= x y) y))
@@ -179,5 +183,5 @@
   [k default]
   (mk (fn [x] (if-let [m (-map x)] (if-some [v (map/get m k)] v default)))
       (fn [x f] (if-let [m (-map x)]
-                 (if-some [v' (f (if-some [v (map/get m k)] v default))]
-                   (c/assoc m k v'))))))
+                  (if-some [v' (f (if-some [v (map/get m k)] v default))]
+                    (c/assoc m k v'))))))
