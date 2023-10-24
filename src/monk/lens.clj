@@ -106,7 +106,7 @@
 
 (defn ?
   "build a lens that when focuses on nil, returns the state unchanged, or behave normally"
-  [l] (< [l k]))
+  [l] (< [l freeze]))
 
 (defn cond
   "commited choice (cond)"
@@ -185,3 +185,6 @@
       (fn [x f] (if-let [m (-map x)]
                   (if-some [v' (f (if-some [v (map/get m k)] v default))]
                     (c/assoc m k v'))))))
+
+'(get {}
+     (default-key :a 0))
