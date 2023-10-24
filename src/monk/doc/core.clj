@@ -1,111 +1,41 @@
 (in-ns 'monk.core)
 
 
-(u/check!)
+[:preambule
+ (u/check!)
+ "This code walkthrough is also a test suite where each `deep-check` block explains a part of the `monk` package."
+ "This is also a gradual introduction that should be read in this very order."
 
+ "Every value inside those `deep-checks` blocks has to be deeply truthy. "
+ "A `nil` or a `false` occuring anywhere in it will throw a meaningful error message "]
 
-"This code walkthrough is also a test suite where each `deep-check` block explains a part of the `monk` package."
-"This is also a gradual introduction that should be read in this very order."
+[:introduction
 
-"Every value inside those `deep-checks` blocks has to be deeply truthy. "
-"A `nil` or a `false` occuring anywhere in it will throw a meaningful error message "
+ "The overall purpose of the monk library is to provide efficent ways to transform and inspect data."
+ "The main focus is on composability and genericity."
+ "By genericity I mean that main library operations should work with/on every clojure values."
+ "By composability I mean that main library operations should be able compose together nicely and unconditionaly."
 
+ [:elements
+  [:value
+   "Any clojure value that you want to inspect or transform."]
+  [:step
+   "A transformation (typically a function taking one value)."]
+  [:lens
+   "A device that let you looks at a value in a particular way, and eventually update it accordingly."
+   "Extended explanations and examples of lens will come later."]]
 
-(u/deep-check :km
-
-              [:intro
-               "`km` is a shorthand for 'keyword-map'."
-               "Keyword-maps represent, I think, 95% of our usage of clojure hash-maps, so it seems to deserves some special care."
-               "The `monk.map` namespace provides some tools for building and dealing with such maps."]
-
-              [:building
-
-               "The `km` macro is intended to ease the building of keyword-maps"
-               "Some conventions will help to acheive this:"
-               "- map keys are not namespaced and do not contains dots"
-               "- if a key contains a dot it is interpreted as a path (e.g :a.b -> [:a :b])"
-               "`km` macro accepts any number of arguments that can be other kms or flat keyvalues seq (as `clojure.core/hash-map` takes)"
-
-               (c/= {:a 1 :b {:c 2 :d 3}}
-                    (km {:a 1 :b {:c 2 :d 3}})
-                    (km :a 1 :b {:c 2 :d 3})
-                    (km {:a 1 :b.c 2 :b.d 3})
-                    (km :a 1 :b.c 2 :b.d 3)
-                    (km {:a 1 :b.c 2} :b.d 3))]
-
-              [:operating
-
-               "In conjonction of an handy builder this namespace exposes common operations on keyword-maps"
-
-               (let [m {:a 1 :b {:c 2 :d 3}}]
-
-                 [:operations
-                  "`get`, `put` and `upd` are available."
-                  [:get
-                   (c/= 1 (map/get m :a))
-                   (c/= 2 (map/get m :b.c))
-                   (c/= 3 (map/get m :b.d))
-                   :partial-application
-                   (let [getter (map/get :b.c)]
-                     (c/= 2 (getter {:a 1 :b {:c 2 :d 3}})))]
-
-                  [:put
-                   "Works like assoc(-in):"
-                   (c/= (map/put m :a 2) (c/assoc m :a 2))
-                   (c/= (map/put m :b.c 3) (c/assoc-in m [:b :c] 3))
-                   "But is variadic (contrary to assoc-in):"
-                   (c/= (map/put m
-                                 :b.c 3
-                                 :b.e 5)
-                        (c/-> m
-                              (c/assoc-in [:b :c] 3)
-                              (c/assoc-in [:b :e] 5)))
-                   :partial-application
-                   (let [putter1 (map/put :b.d)
-                         putter2 (map/put :b.d 4)]
-                     (c/= {:a 1 :b {:c 2 :d 4}}
-                          (putter1 m 4)
-                          (putter2 m)))]
-
-                  [:upd
-                   "Works like update(-in):"
-                   (c/= (map/upd m :a c/inc) (c/update m :a c/inc))
-                   (c/= (map/upd m :b.c c/inc) (c/update-in m [:b :c] c/inc))
-                   "upd is variadic too:"
-                   (c/= (map/upd m
-                                 :a c/inc
-                                 :b.c c/inc
-                                 :b.d c/dec)
-                        (c/-> (c/update m :a c/inc)
-                              (c/update-in [:b :c] c/inc)
-                              (c/update-in [:b :d] c/dec)))
-                   :partial-application
-                   (let [updater1 (map/upd :b.d)
-                         updater2 (map/upd :b.d c/inc)]
-                     (c/= {:a 1 :b {:c 2 :d 4}}
-                          (updater1 m c/inc)
-                          (updater2 m)))]])]
-
-              [:extra-considerations
-               "The `get`, `put` and `upd` operations are in fact macros !"
-               "The main pain with macros is the fact that they do not compose with regular functions, you can't `comp`, `apply` or `map` a macro, but here this limitation do not really occur."
-               "This is because `get`, `put` and `upd` partial arities let you emit functions you need at compile time. "
-               "e.g: `get`, `put` and `upd` are not functions but `(get :a)`, `(put :b.c 2)`, `(upd :a)`, `(upd :b.c c/inc)` are functions!"
-               (c/= [1 2 3]
-                    (c/mapv (map/get :a.b) [{:a {:b 1}} {:a {:b 2}} {:a {:b 3}}]))
-               (c/= [{:a 1} {:a 2}]
-                    (c/mapv (map/upd :a c/inc) [{:a 0} {:a 1}]))
-               "One could argue that variadic arities of put and upd are not partialisables, for this 2 more macro exists"
-               (let [putter (map/put_ :a 1 :b.c 2)]
-                 (c/= {:foo :bar, :a 1, :b {:c 2}}
-                      (putter {:foo :bar})))
-               (let [updater (map/upd_ :a c/inc :b.c c/dec)]
-                 (c/= {:a 2 :b {:c 1}}
-                      (updater {:a 1 :b {:c 2}})))
-               "Under the hood, all this compiles to clojure's `get-in` `assoc-in` and `update-in` forms."
-               "Dot keywords representing paths (e.g `:a.b.c`) are turned into regular clojure paths at compile time so there is no real performance penalty."])
-
-
+ [:operations
+  [:run
+   "Transform a value."
+   '(run STEP VALUE)]
+  [:get
+   "Get a view of a value."
+   '(get VALUE LENS)]
+  [:upd
+   "Transform a value accordingly to a way of viewing it."
+   '(upd VALUE LENS STEP)
+   '(upd VALUE LENS STEP LENS STEP ...)]]]
 
 (u/deep-check :lens
 
@@ -118,23 +48,25 @@
 
               [:operations
 
-               "There is three basic lens based operations: `get`, `upd` and `put`."
+               "There is two basic lens based operations: `get` and `upd`."
 
                "Here some examples with keyword and idx lenses."
 
-               "Keyword lenses simply denotes the targetting of a key in a map. Like in the `monk.map` namespace, keywords can contain dots to denote nested paths. (e.g: `:a.b.c`)"
+               "Keyword lenses simply denotes the targetting of a key in a map. "
                "In a similar way, integers lenses denotes the targetting of an index in a vector. Negatives indexes are supported to access an element from the end of the vector."
 
                [:get
+                "Basic vector and map access."
                 (c/= 1
                      (get [1 2 3] 0)
                      (get {:a 1 :b 2} :a))
 
-                "path access"
+                "Nested map access"
+                "Keywords can contain dots to denote nested paths. (e.g: `:a.b.c`), it is explained in more details in the `monk.map` section."
                 (c/= 1
                      (get {:a {:b 1}} :a.b))
 
-                "negative indexes"
+                "Vectors elements can also be accessed from the end using negative indexes."
                 (c/= :x
                      (get [1 2 :x] -1)
                      (get [2 :x 1] -2)
@@ -157,7 +89,7 @@
                           :b.c c/inc))]
 
                [:put
-                "Just a simple convenience built over `upd`"
+                "Just a simple convenience built over `upd`, analog to `clojure.core/assoc`"
                 '(equiv (put x at v)
                         (upd x at (constantly v)))
 
@@ -173,7 +105,7 @@
               [:shortcircuiting
                "We are deviating from standard lenses by adding shortcircuiting behavior if the lens focuses on nothing."
 
-               "This expression returns nil because there is nothing under the key `:b`"
+               "This expression returns nil because there is nothing under the `:b` key"
                (c/nil? (upd {:a 1} :b c/inc))
 
                "It can be surprising when trying to `put` a non existant key:"
@@ -426,13 +358,22 @@
                "For further study of lenses, please see `monk.lens` source code that contains extra lenses and lens-constructors."])
 
 
-
 (u/deep-check :step
 
               [:introduction
                "The idea of the `monk.step` namespace is to be able to build and compose functions of arity 1"
                "From now on, I will call this kind of function a 'step'"
                "As in the `monk.lens` namespace, the idea is to be able to turn any clojure value into such functions ('step)"]
+
+              [:operations
+               "The two main operations that leverage steps are `run` and `upd`:"
+               [:run
+                "The most simple way to use a step is the `run` function"
+                "It takes a step and a value, and run the step on the value."
+                '(run step value)]
+               [:upd
+                "As mentioned at the end of the lens section, the third argument of the `upd` operation is a step"
+                '(upd value lens step)]]
 
               [:instances
 
@@ -595,14 +536,109 @@
 
 
 
+(u/deep-check :km
+
+              [:intro
+               "`km` is a shorthand for 'keyword-map'."
+               "Keyword-maps represent, I think, 95% of our usage of clojure hash-maps, so it seems to deserves some special care."
+               "The `monk.map` namespace provides some tools for building and dealing with such maps."]
+
+              [:building
+
+               "The `km` macro is intended to ease the building of keyword-maps"
+               "Some conventions will help to acheive this:"
+               "- map keys are not namespaced and do not contains dots"
+               "- if a key contains a dot it is interpreted as a path (e.g :a.b -> [:a :b])"
+               "`km` macro accepts any number of arguments that can be other kms or flat keyvalues seq (as `clojure.core/hash-map` takes)"
+
+               (c/= {:a 1 :b {:c 2 :d 3}}
+                    (km {:a 1 :b {:c 2 :d 3}})
+                    (km :a 1 :b {:c 2 :d 3})
+                    (km {:a 1 :b.c 2 :b.d 3})
+                    (km :a 1 :b.c 2 :b.d 3)
+                    (km {:a 1 :b.c 2} :b.d 3))]
+
+              [:operating
+
+               "In conjonction of an handy builder this namespace exposes common operations on keyword-maps"
+
+               (let [m {:a 1 :b {:c 2 :d 3}}]
+
+                 [:operations
+                  "`get`, `put` and `upd` are available."
+                  [:get
+                   (c/= 1 (map/get m :a))
+                   (c/= 2 (map/get m :b.c))
+                   (c/= 3 (map/get m :b.d))
+                   :partial-application
+                   (let [getter (map/get :b.c)]
+                     (c/= 2 (getter {:a 1 :b {:c 2 :d 3}})))]
+
+                  [:put
+                   "Works like assoc(-in):"
+                   (c/= (map/put m :a 2) (c/assoc m :a 2))
+                   (c/= (map/put m :b.c 3) (c/assoc-in m [:b :c] 3))
+                   "But is variadic (contrary to assoc-in):"
+                   (c/= (map/put m
+                                 :b.c 3
+                                 :b.e 5)
+                        (c/-> m
+                              (c/assoc-in [:b :c] 3)
+                              (c/assoc-in [:b :e] 5)))
+                   :partial-application
+                   (let [putter1 (map/put :b.d)
+                         putter2 (map/put :b.d 4)]
+                     (c/= {:a 1 :b {:c 2 :d 4}}
+                          (putter1 m 4)
+                          (putter2 m)))]
+
+                  [:upd
+                   "Works like update(-in):"
+                   (c/= (map/upd m :a c/inc) (c/update m :a c/inc))
+                   (c/= (map/upd m :b.c c/inc) (c/update-in m [:b :c] c/inc))
+                   "upd is variadic too:"
+                   (c/= (map/upd m
+                                 :a c/inc
+                                 :b.c c/inc
+                                 :b.d c/dec)
+                        (c/-> (c/update m :a c/inc)
+                              (c/update-in [:b :c] c/inc)
+                              (c/update-in [:b :d] c/dec)))
+                   :partial-application
+                   (let [updater1 (map/upd :b.d)
+                         updater2 (map/upd :b.d c/inc)]
+                     (c/= {:a 1 :b {:c 2 :d 4}}
+                          (updater1 m c/inc)
+                          (updater2 m)))]])]
+
+              [:extra-considerations
+               "The `get`, `put` and `upd` operations are in fact macros !"
+               "The main pain with macros is the fact that they do not compose with regular functions, you can't `comp`, `apply` or `map` a macro, but here this limitation do not really occur."
+               "This is because `get`, `put` and `upd` partial arities let you emit functions you need at compile time. "
+               "e.g: `get`, `put` and `upd` are not functions but `(get :a)`, `(put :b.c 2)`, `(upd :a)`, `(upd :b.c c/inc)` are functions!"
+               (c/= [1 2 3]
+                    (c/mapv (map/get :a.b) [{:a {:b 1}} {:a {:b 2}} {:a {:b 3}}]))
+               (c/= [{:a 1} {:a 2}]
+                    (c/mapv (map/upd :a c/inc) [{:a 0} {:a 1}]))
+               "One could argue that variadic arities of put and upd are not partialisables, for this 2 more macro exists"
+               (let [putter (map/put_ :a 1 :b.c 2)]
+                 (c/= {:foo :bar, :a 1, :b {:c 2}}
+                      (putter {:foo :bar})))
+               (let [updater (map/upd_ :a c/inc :b.c c/dec)]
+                 (c/= {:a 2 :b {:c 1}}
+                      (updater {:a 1 :b {:c 2}})))
+               "Under the hood, all this compiles to clojure's `get-in` `assoc-in` and `update-in` forms."
+               "Dot keywords representing paths (e.g `:a.b.c`) are turned into regular clojure paths at compile time so there is no real performance penalty."])
+
+
+
 (comment :scratch
-    "the next lens"
-    (let [L (lens/mk
-             c/next
-             (fn [s f] (send s (> c/next f (f_ (c/cons (c/first s) _))))))]
-      (upd (c/range 10)
-           L
-           ($ c/inc)))
+         "the next lens"
+         (let [L (lens/mk
+                  c/next
+                  (fn [s f] (send s (> c/next f (f_ (c/cons (c/first s) _))))))]
+           (upd (c/range 10)
+                L
+                ($ c/inc)))
 
-
-    (upd {:a true} :a c/not))
+         (upd {:a true} :a c/not))
