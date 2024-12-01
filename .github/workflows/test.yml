@@ -26,4 +26,4 @@ jobs:
         
     - name: Run Tests
       run: |
-        clojure -M -e "(require 'monk.core-test) (require 'monk.tutorial)"
+        clojure -M:test -e "(require 'monk.core-test) (require 'monk.tutorial)"

@@ -46,4 +46,4 @@
   :check [(is 0 (get 0 (check (> number? inc))))
           (isnt (get :a (check (> number? inc))))]
 
-  :$})
+  :$ []})
