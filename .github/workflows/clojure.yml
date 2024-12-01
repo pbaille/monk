@@ -1,0 +1,29 @@
+name: Clojure Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    
+    - name: Install Clojure Tools
+      uses: DeLaGuardo/setup-clojure@12.1
+      with:
+        cli: latest
+        
+    - name: Run Tests
+      run: |
+        clojure -M -e "(require 'monk.core-test) (require 'monk.tutorial)"
