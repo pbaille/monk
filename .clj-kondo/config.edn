@@ -3,5 +3,14 @@
            :unused-value {:level :off}
            :redefined-var {:level :off}
            :clojure-lsp/unused-public-var {:level :off}}
- :hooks {:analyze-call {monk.core/deftup hooks.monk.core/deftup
-                        monk.core/defma pouetpouet}}}
+ :hooks {:analyze-call {monk.core/defma pouetpouet}
+         :macroexpand {monk.core/deftup hooks.monk.core/deftup
+                       monk.core/defmap hooks.monk.core/defmap
+                       monk.core/defm hooks.monk.core/defm
+                       monk.core/defr hooks.monk.core/defr
+                       monk.prelude/import-macros hooks.monk.prelude/import-macros
+                       monk.prelude/f_ hooks.monk.prelude/f_
+                       monk.prelude/>_ hooks.monk.prelude/>_
+                       monk.prelude/_> hooks.monk.prelude/_>
+                       monk.prelude/cp hooks.monk.prelude/cp}}
+ :lint-as {monk.core/defc clojure.core/defn}}
