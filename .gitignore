@@ -8,3 +8,5 @@
 /.clj-kondo/.cache/
 /.lsp/
 /.vscode/
+.aider*
+.env
