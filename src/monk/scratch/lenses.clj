@@ -1,4 +1,5 @@
 (ns monk.scratch.lenses
+  "Experiment on function lenses (current implementation do not support `upd` operation on function lenses.)"
   (:require [monk.lens :as l
              :refer [mk upd]]
             [monk.step :as step]))

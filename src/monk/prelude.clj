@@ -151,6 +151,13 @@
       (if-let [x' (keep-all f x)]
         (-wrap-coll (empty x) x')))
 
+    (defn $keep [x f]
+      (-wrap-coll (empty x) (keep f x)))
+
+    (defn $kick [x f]
+      (-wrap-coll (empty x)
+                  (keep (fn [v] (if (nil? (f v)) v)) x)))
+
     (defn prewalk
       ([x f]
        (prewalk x f f))
@@ -241,7 +248,6 @@
               (recur ret nodes)))
           ret)))
 
-
     (defn get-source-node [source-nodes path]
       (some (fn [[k v]] (if (or (= path k) (path_child-of? path k)) [k v]))
             (reverse source-nodes)))
@@ -261,7 +267,11 @@
                         {:a (yop 1)
                          :b [1 2 3]}])
         '{[0]    some,
-          [1 :a] (yop 1)}))
+          [1 :a] (yop 1)})
+
+    (defn parse-argv [argv]
+      (let [[args [_ vararg]] (split-with (complement #{'&}) argv)]
+        [(vec args) vararg])))
 
 (do :dev
 

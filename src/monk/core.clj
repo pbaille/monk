@@ -81,92 +81,108 @@
 
 "Constructors"
 
-(defn k
+(defmacro defc
+  "define a thing constructor given either
+   - lens + step
+   (defc NAME ?DOC ?META ARGV LENS STEP)
+   - thing expression
+   (defc NAME ?DOC ?META ARGV THING)"
+  [name & body]
+  (let [[doc body] (if (c/string? (c/first body)) [(c/first body) (c/next body)] [nil body])
+        [attrs body] (if (c/map? (c/first body)) [(c/first body) (c/next body)] [nil body])
+        [argv & body] body
+        [args vararg] (u/parse-argv argv)
+        runtime-args `(c/concat ~args ~vararg)
+        form `(c/cons '~name (c/map form ~runtime-args))
+        map `{::verb ~name ::args (c/vec ~runtime-args)}
+        vec `(c/into [~name] ~runtime-args)
+        body (c/case (c/count body)
+               1 `(let [this# ~(c/first body)]
+                    (thing (-step this#) (-lens this#) ~vec ~map ~form))
+               2 `(thing ~(c/first body) ~(c/second body) ~vec ~map ~form))]
+    `(defn ~name ~@(if doc [doc])
+       ~@(if attrs [attrs])
+       ~(c/vec argv)
+       ~body)))
+
+(defc k
   "constant"
   [x]
-  (thing (step/k x)
-         (lens/k x)
-         [x]
-         {:content x}
-         (c/list 'k (form x))))
+  (step/k x)
+  (lens/k x))
 
-(defn check
+(defc check
   "check"
   [x]
-  (thing (step/check x)
-         (lens/check x)
-         [x]
-         {:content x}
-         (c/list 'check (form x))))
+  (step/check x)
+  (lens/check x))
 
-(defn guard
+(defc guard
   "build a check lens from a unary predicate."
   [f]
   (check (u/predicate->guard f)))
 
-(defn =
+(defc =
   "equal"
   [x]
-  (thing (step/= x)
-         (lens/= x)
-         [x]
-         {:content x}
-         (c/list '= (form x))))
+  (step/= x)
+  (lens/= x))
 
-(defn ?
+(defc ?
   "optional"
   [x]
-  (thing (step/? x)
-         (lens/? x)
-         [x]
-         {:content x}
-         (c/list '? (form x))))
+  (step/? x)
+  (lens/? x))
 
-(defn >
+(defc >
   "conjunction (and)"
   [& xs]
-  (thing (step/> xs)
-         (lens/> xs)
-         (c/vec xs)
-         {:xs xs}
-         (c/cons '> (c/map form xs))))
+  (step/> xs)
+  (lens/> xs))
 
-(defn <
+(defc <
   "disjonction (or)"
   [& xs]
-  (thing (step/< xs)
-         (lens/< xs)
-         (c/vec xs)
-         {:xs xs}
-         (c/cons '< (c/map form xs))))
+  (step/< xs)
+  (lens/< xs))
 
-(defn cond
+(defc cond
   "commited choice"
   [& xs]
-  (thing (step/cond xs)
-         (lens/cond xs)
-         ;; TODO
-         (c/vec xs)
-         {:xs xs}
-         (c/cons 'cond (c/map form xs))))
+  (step/cond xs)
+  (lens/cond xs))
 
-(defn $
+(defc $
   "fmap"
   [x]
-  (thing (step/$ x)
-         (lens/$ x)
-         [x]
-         {:content x}
-         (c/list '$ (form x))))
+  (step/$ x)
+  (lens/$ x))
+
+(defc keep
+  "keep"
+  [x]
+  (step/keep x)
+  (lens/keep x))
+
+(defc filt
+  "filt"
+  [x]
+  (keep (guard x)))
+
+(defc kick
+  "kick"
+  [x]
+  (step/kick x)
+  (lens/kick x))
 
 (do :evil
 
     "here we are turning all clojure core predicates into checks"
 
     (let [core-predicates
-          '[any? associative? boolean? bytes? char? chunked-seq? class? coll? contains? counted? decimal? delay? distinct?
-            double? empty? even? every? float? fn? future? ident? identical? ifn? indexed? inst? int? integer? isa?
-            keyword? list? map-entry? map? nat-int? neg-int? neg? not-any? not-every? number? odd? pos-int? pos?
+          '[any? associative? boolean? bytes? char? chunked-seq? class? coll? counted? decimal? delay? distinct?
+            double? empty? even? float? fn? future? ident? identical? ifn? indexed? inst? int? integer? isa?
+            keyword? list? map-entry? map? nat-int? neg-int? neg? number? odd? pos-int? pos?
             qualified-ident? qualified-keyword? qualified-symbol? ratio? rational? record? reversible? satisfies? seq?
             seqable? sequential? set? simple-ident? simple-keyword? simple-symbol? some? sorted? special-symbol? string?
             symbol? tagged-literal? true? uri? uuid? var? vector? zero?]]
@@ -181,40 +197,55 @@
       (defn false? [_] (throw e))))
 
 (do :arithmetic
-    (defn gt [x]
+    (defc gt [x]
       (guard #(c/> % x)))
-    (defn gte [x]
+    (defc gte [x]
       (guard #(c/>= % x)))
-    (defn lt [x]
+    (defc lt [x]
       (guard #(c/< % x)))
-    (defn lte [x]
+    (defc lte [x]
       (guard #(c/<= % x))))
 
-(defn map
+(defc map
   "map of k v"
   [k v]
   (> map? {lens/keys k
            lens/vals v}))
 
-(defn vec
+(defc vec
   "vector of s"
   [s] (> vector? ($ s)))
 
-(defn set
+(defc set
   "set of s"
   [s] (> set? ($ s)))
 
-(defn seq
+(defc seq
   "set of s"
   [s] (> seq? ($ s)))
 
-(defn tup
+(defc tup
   "tuple"
   [& xs]
   (> (check (> vector? c/count (= (c/count xs))))
      (c/vec xs)))
 
-(defn default [x]
+(comment (get [1 2] (-lens (u/predicate->guard c/vector?))
+              )
+         (get [1 2]
+              (check (u/predicate->guard c/vector?)))
+         (get [1 2] 0)
+         (get [1 2] (tup int? int?))
+         (get [1 2] (check (u/predicate->guard c/vector?)))
+         (get [1 2] (-lens vector?))
+         (form (-lens vector?))
+         (get [1 2] (check (> vector? c/count (= 2))))
+         (run (tup int? int?) [1 2])
+         (-lens (keep (u/predicate->guard c/int?)))
+         (-lens (check (u/predicate->guard c/vector?)))
+         (step (guard c/vector?)))
+
+(defc default [x]
   (< id (k x)))
 
 (defmacro deftup
@@ -360,6 +391,12 @@
            (c/= 2 (get 2 (gte 2)))
            (c/nil? (get 2 (gte 3)))])
 
+         (upd [1 2 3]
+              (vec number?)
+              c/inc
+
+           )
+
          (u/deep-check :deftup
 
                        {:simple
@@ -418,22 +455,22 @@
                               (p6 [1 1])
                               (p6 {:x 1 :y 1}))]}))
 
-(do :defr-check
+(comment :defr-check
 
-    (defr (point :x int? :y int?)
-      :step (fn [this _] ["i'm a point:" this]))
+         (defr (point :x int? :y int?)
+           :step (fn [_] ["i'm a point:" this]))
 
-    (let [p (point 1 2)]
-      (u/check
-       (u/is
-        [true
-         ["i'm a point" p]
-         1
-         (list 'point 1 2)]
-        [(point? p)
-         (run p :something)
-         (get p 0)
-         (form (point 1 2))]))))
+         (let [p (point 1 2)]
+           (u/check
+            (u/is
+             [true
+              ["i'm a point" p]
+              1
+              (list 'point 1 2)]
+             [(point? p)
+              (run p :something)
+              (get p 0)
+              (form (point 1 2))]))))
 
 (comment :defr2-check
 

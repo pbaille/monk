@@ -120,6 +120,54 @@
           (t# (c/vec (c/cons x# xs#))))))))
 
 (comment
+
+  (u/deep-check
+   [:mup
+    "a tuple that also works as a map"
+    (let [m (mup :x int? :y int?)]
+      [(:data (m [1 2]))
+       (->map (m [1 2]))
+       (c/= [1 2] (:data (m [1 2])))
+       (c/= 1 (get (m [1 2]) :x))
+       (c/nil? (m [1/2 2]))])]
+
+   [:tap
+    "a map that also works as a tuple"
+    (let [t (tap :a int? :b string?)]
+      [:build
+       (c/= {:a 1 :b "aze"}
+            (:data (t [1 "aze"]))
+            (:data (t {:a 1 :b "aze"})))
+       (c/= nil
+            (t [1 2])
+            (t [1/2 "iop"])
+            (t {:a 1/2 :b "iop"}))
+       :get
+       [1
+        (->map (t [1 "aze"]))
+        (get (t [1 "aze"]) 0)
+        (get (t [1 "aze"]) :a)]])
+    "it can also take extra specification"
+    (let [extra {(? :c) keyword?}
+          t (tap :a int? :b string? extra)]
+      [:build
+       "it still works as in previous example"
+       (c/= {:a 1 :b "aze"}
+            (:data (t [1 "aze"]))
+            (:data (t {:a 1 :b "aze"})))
+       "but "
+       (c/= {:a 1 :b "aze" :c :ok :d 'anything}
+            (:data (t {:a 1 :b "aze" :c :ok :d 'anything})))
+       (c/= nil
+            (t [1 2])
+            (t [1/2 "iop"])
+            (t {:a 1/2 :b "iop"})
+            (t {:a 1 :b "iop" :c 3}))
+       :get
+       (c/= 1
+            (get (t [1 "aze"]) 0)
+            (get (t [1 "aze"]) :a))])])
+
   (u/deep-check :deftap
                 (deftap (point2 :x int? :y int?))
                 (c/= {:x 1 :y 2}

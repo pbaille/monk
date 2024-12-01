@@ -69,3 +69,15 @@
   [x]
   (let [s (-step x)]
     (fn [x] (u/$? x s))))
+
+(defn keep
+  "Select some elements using the given step."
+  [x]
+  (let [s (-step x)]
+    (fn [x] (u/$keep x s))))
+
+(defn kick
+  "Reject some elements using the given step."
+  [x]
+  (let [s (-step x)]
+    (fn [x] (u/$kick x s))))

@@ -1,5 +1,5 @@
 (ns monk.lens
-  (:refer-clojure :exclude [i get + < > = keys vals cond])
+  (:refer-clojure :exclude [i get + < > = keys vals cond keep])
   (:require
    [clojure.core :as c]
    [monk.clj.protocols :as p :refer [-lens -step -map]]
@@ -64,8 +64,8 @@
       (fn [y f] (if (c/= x y) (f y)))))
 
 (defn check [f]
-  (mk (fn [x] (u/if-not-nil (f x) x))
-      (fn [x g] (u/if-not-nil (f x) (g x)))))
+  (mk (fn [x] (u/if-not-nil (get x f) x))
+      (fn [x g] (u/if-not-nil (get x f) (g x)))))
 
 (defn + [l m]
   (mk (fn [x]
@@ -188,3 +188,36 @@
 
 '(get {}
      (default-key :a 0))
+
+(defn keep [s]
+  (mk (fn [x] (u/$keep x (f_ (get _ s))))
+      (fn [x f] (u/$ x (f_ (if-some [v (get _ s)]
+                             (if-some [v' (f v)]
+                               v'
+                               _)
+                             _))))))
+
+(defn kick [s]
+  (mk (fn [x] (u/$kick x (f_ (get _ s))))
+      (fn [x f] (u/$ x (f_ (if (c/nil? (get _ s))
+                             (if-some [v (f _)]
+                               v
+                               _)
+                             _))))))
+
+(comment
+  (u/is [:a 3 :b 5]
+        (upd [:a 2 :b 4]
+             (keep (u/predicate->guard number?))
+             c/inc)
+
+        (upd [:a 2 :b 4]
+             (kick (u/predicate->guard keyword?))
+             c/inc))
+
+  (u/is [2 4]
+        (get [:a 2 :b 4]
+             (keep (u/predicate->guard number?)))
+
+        (get [:a 2 :b 4]
+             (kick (u/predicate->guard keyword?)))))
