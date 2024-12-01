@@ -230,6 +230,9 @@
   (> (check (> vector? c/count (= (c/count xs))))
      (c/vec xs)))
 
+(defc default [x]
+  (< id (k x)))
+
 (comment (get [1 2] (-lens (u/predicate->guard c/vector?))
               )
          (get [1 2]
@@ -245,124 +248,132 @@
          (-lens (check (u/predicate->guard c/vector?)))
          (step (guard c/vector?)))
 
-(defc default [x]
-  (< id (k x)))
+(do :constructors
 
-(defmacro deftup
-  [[name & xs] & [parser]]
-  (let [arity (c/count xs)
-        predicate-name (c/symbol (c/str name "?"))
-        [arg1 :as argv] (c/vec (c/repeatedly arity c/gensym))
-        parsed (if parser (c/list `run parser arg1) arg1)]
-    (c/assert (c/> arity 1)
-              "deftup: should have more than 1 members")
-    `(let [t# (tup ~@xs)]
-       (def ~predicate-name t#)
-       (defn ~name
-         ([~arg1] (t# ~parsed))
-         (~argv (~name ~argv))))))
+    (defmacro deftup
+      [[name & xs] & [parser]]
+      (let [arity (c/count xs)
+            predicate-name (c/symbol (c/str name "?"))
+            [arg1 :as argv] (c/vec (c/repeatedly arity c/gensym))
+            parsed (if parser (c/list `run parser arg1) arg1)]
+        (c/assert (c/> arity 1)
+                  "deftup: should have more than 1 members")
+        `(let [t# (tup ~@xs)]
+           (def ~predicate-name t#)
+           (defn ~name
+             ([~arg1] (t# ~parsed))
+             (~argv (~name ~argv))))))
 
-(defmacro defmap
-  [[name & kvs] & [parser]]
-  (let [arity (c/count kvs)
-        predicate-name (c/symbol (c/str name "?"))
-        arg1 (c/gensym)
-        parsed (if parser (c/list `run parser arg1) arg1)
-        add-type `(map/put ~(c/keyword name) true)]
-    (c/assert (c/> arity 2) "defmap: should have more than 1 members")
-    (c/assert (c/even? arity) "defmap: odd key-values count")
-    `(let [m# (c/hash-map ~@kvs)]
-       (def ~predicate-name m#)
-       (defn ~name
-         ([~arg1] (run (> m# ~add-type) ~parsed))
-         ([x# & xs#] (~name (map/build* (c/cons x# xs#))))))))
+    (defmacro defmap
+      [[name & kvs] & [parser]]
+      (let [arity (c/count kvs)
+            predicate-name (c/symbol (c/str name "?"))
+            arg1 (c/gensym)
+            parsed (if parser (c/list `run parser arg1) arg1)
+            add-type `(map/put ~(c/keyword name) true)]
+        (c/assert (c/> arity 2) "defmap: should have more than 1 members")
+        (c/assert (c/even? arity) "defmap: odd key-values count")
+        `(let [m# (c/hash-map ~@kvs)]
+           (def ~predicate-name m#)
+           (defn ~name
+             ([~arg1] (run (> m# ~add-type) ~parsed))
+             ([x# & xs#] (~name (map/build* (c/cons x# xs#))))))))
 
-(defmacro defm
-  [[name & kvs] & [parse]]
-  (let [arity (c/count kvs)
-        _ (c/assert (c/> arity 2) "defm: should have more than 1 members")
-        _ (c/assert (c/even? arity) "defm: odd key-values count")
-        predicate-name (c/symbol (c/str name "?"))
-        [arg1 :as argv] (c/vec (c/repeatedly (c// arity 2) c/gensym))
-        keys (c/vec (c/take-nth 2 kvs))
-        vals (c/vec (c/take-nth 2 (c/next kvs)))
-        build `(> (cond (tup ~@vals) (c/partial c/zipmap ~keys)
-                      ~(c/zipmap keys vals))
-                  (map/put ~(c/keyword name) true))
-        main (if parse `(> ~parse ~build) build)]
-    `(do
-       (def ~predicate-name ~build)
-       (defn ~name
-        ([~arg1] (run ~main ~arg1))
-        (~argv (~name (c/zipmap ~keys ~argv)))))))
+    (defmacro defm
+      [[name & kvs] & [parse]]
+      (let [arity (c/count kvs)
+            _ (c/assert (c/> arity 2) "defm: should have more than 1 members")
+            _ (c/assert (c/even? arity) "defm: odd key-values count")
+            predicate-name (c/symbol (c/str name "?"))
+            [arg1 :as argv] (c/vec (c/repeatedly (c// arity 2) c/gensym))
+            keys (c/vec (c/take-nth 2 kvs))
+            vals (c/vec (c/take-nth 2 (c/next kvs)))
+            build `(> (cond (tup ~@vals) (c/partial c/zipmap ~keys)
+                            ~(c/zipmap keys vals))
+                      (map/put ~(c/keyword name) true))
+            main (if parse `(> ~parse ~build) build)]
+        `(do
+           (def ~predicate-name ~build)
+           (defn ~name
+             ([~arg1] (run ~main ~arg1))
+             (~argv (~name (c/zipmap ~keys ~argv))))))))
 
-(defmacro defr
-  "a wrapper around defrecord"
-  [[name & kvs]
-   & {:keys [step form verbose]}]
-  (let [arity (c/count kvs)
-        _ (c/assert (c/> arity 2) "defr: should have more than 1 members")
-        _ (c/assert (c/even? arity) "defr: odd key-values count")
-        record-name (c/symbol (str/capitalize (c/str name)))
-        map-constructor-name (c/symbol (c/str "map->" record-name))
-        predicate-name (c/symbol (c/str name "?"))
-        [arg1 :as argv] (c/vec (c/repeatedly (c// arity 2) c/gensym))
-        keys (c/vec (c/take-nth 2 kvs))
-        vals (c/vec (c/take-nth 2 (c/next kvs)))
-        build `(cond (tup ~@vals) (c/partial c/zipmap ~keys)
-                     ~(c/zipmap keys vals))
-        main `(> ~build ~map-constructor-name)
-        fields (run ($ (> c/name c/symbol)) keys)
-        form (c/or form `(c/cons '~name ~(if verbose (c/interleave keys fields) fields)))
-        step (c/or step `(fn [x#] (get ~'this x#)))]
-    `(do
-       (defrecord ~record-name ~fields
-         p/IVec (-vec [_#] ~fields)
-         p/IForm (-form [~'this] ~form)
-         IFn (invoke [~'this x#] (~step x#))
-         p/IStep (-step [~'this] ~step))
-       (def ~predicate-name ~build)
-       (defn ~name
-         ([~arg1] (run ~main ~arg1))
-         (~argv (~name (c/zipmap ~keys ~argv)))))))
+(do :records
 
-'(defmacro defr2
+    "experimental"
 
-  [[name & kvs] & body]
+    (defmacro defr
+      "a wrapper around defrecord"
+      [[name & kvs]
+       & {:keys [step form verbose]}]
+      (let [arity (c/count kvs)
+            _ (c/assert (c/> arity 2) "defr: should have more than 1 members")
+            _ (c/assert (c/even? arity) "defr: odd key-values count")
+            record-name (c/symbol (str/capitalize (c/str name)))
+            map-constructor-name (c/symbol (c/str "map->" record-name))
+            predicate-name (c/symbol (c/str name "?"))
+            [arg1 :as argv] (c/vec (c/repeatedly (c// arity 2) c/gensym))
+            keys (c/vec (c/take-nth 2 kvs))
+            vals (c/vec (c/take-nth 2 (c/next kvs)))
+            build `(cond (tup ~@vals) (c/partial c/zipmap ~keys)
+                         ~(c/zipmap keys vals))
+            main `(> ~build ~map-constructor-name)
+            fields (run ($ (> c/name c/symbol)) keys)
+            form (c/or form `(c/cons '~name ~(if verbose (c/interleave keys fields) fields)))
+            step (c/or step `(fn [x#] (get ~'this x#)))]
+        `(do
+           (defrecord ~record-name ~fields
+             p/IVec (-vec [_#] ~fields)
+             p/IForm (-form [~'this] ~form)
+             IFn (invoke [~'this x#] (~step x#))
+             p/IStep (-step [~'this] ~step))
+           (def ~predicate-name ~build)
+           (defn ~name
+             ([~arg1] (run ~main ~arg1))
+             (~argv (~name (c/zipmap ~keys ~argv)))))))
 
-  (let [arity (c// (c/count kvs) 2)
+    (defmacro defr2
 
-        record-name (u/sym (str/capitalize (u/kebab->camel name)))
-        cast-protocol-name (u/sym "I" record-name)
-        cast-method-name (u/sym "->" name)
-        map-constructor-name (u/sym "map->" record-name)
-        predicate-name (u/sym name "?")
+      [[name & kvs] & body]
 
-        monk-impls (c/take-while seq? body)
-        extra-impls (c/drop-while seq? body)
-        monk-impls-expanded (c/interleave (send monk-impls ($ (> c/first p/method-name->protocol-name)))
-                                          monk-impls)
+      (let [arity (c// (c/count kvs) 2)
 
-        [arg1 :as argv] (c/vec (c/repeatedly arity c/gensym))
-        keys (c/vec (c/take-nth 2 kvs))
-        vals (c/vec (c/take-nth 2 (c/next kvs)))
+            record-name (u/sym (str/capitalize (u/kebab->camel name)))
+            cast-protocol-name (u/sym "I" record-name)
+            cast-method-name (u/sym "->" name)
+            map-constructor-name (u/sym "map->" record-name)
+            predicate-name (u/sym name "?")
 
-        build `(cond (tup ~@vals) (c/partial c/zipmap ~keys)
-                     ~(c/zipmap keys vals))
-        main `(> ~build ~map-constructor-name)
-        fields (run ($ u/sym) keys)]
+            monk-impls (c/take-while seq? body)
+            extra-impls (c/drop-while seq? body)
+            monk-impls-expanded (c/interleave (send monk-impls ($ (> c/first p/method-sym->protocol-sym)))
+                                              monk-impls)
 
-    `(do
-       (c/defprotocol ~cast-protocol-name
-         (~cast-method-name [~'_]))
-       (defrecord ~record-name ~fields
-           ~@monk-impls-expanded
-           ~@extra-impls)
-       (defn ~predicate-name [x#]
-         (c/instance? ~record-name x#))
-       (defn ~name
-         ([~arg1] (run ~main ~arg1))
-         (~argv (~name (c/zipmap ~keys ~argv)))))))
+            [arg1 :as argv] (c/vec (c/repeatedly arity c/gensym))
+            keys (c/vec (c/take-nth 2 kvs))
+            vals (c/vec (c/take-nth 2 (c/next kvs)))
+
+            build `(cond (tup ~@vals) (c/partial c/zipmap ~keys)
+                         ~(c/zipmap keys vals))
+            main `(> ~build ~map-constructor-name)
+            fields (run ($ u/sym) keys)
+            form `(c/cons '~name ~(c/vec (c/interleave keys fields)))]
+
+        `(do
+           (c/defprotocol ~cast-protocol-name
+             (~cast-method-name [~'_]))
+           (defrecord ~record-name ~fields
+             p/IForm (-form [~'this] ~form)
+             ~@monk-impls-expanded
+             ~@extra-impls)
+           (c/defmethod c/print-method ~record-name [x# w#]
+             (c/print-method (monk.core/form x#) w#))
+           (defn ~predicate-name [x#]
+             (c/instance? ~record-name x#))
+           (defn ~name
+             ([~arg1] (run ~main ~arg1))
+             ~@(c/when (c/> arity 1)
+                 `[(~argv (~name (c/zipmap ~keys ~argv)))]))))))
 
 (do :extra
 
@@ -385,17 +396,9 @@
 
 (comment :check
 
-         (u/deep-check
-          [(c/= 2 (get 2 (gt 1)))
-           (c/nil? (get 2 (gt 3)))
-           (c/= 2 (get 2 (gte 2)))
-           (c/nil? (get 2 (gte 3)))])
-
          (upd [1 2 3]
               (vec number?)
-              c/inc
-
-           )
+              c/inc)
 
          (u/deep-check :deftup
 
@@ -480,4 +483,4 @@
          (defr2 (box :content int?)
             (-step [this] (fn [_] this)))
 
-         (box :content 1))
+         (box {:content 1}))

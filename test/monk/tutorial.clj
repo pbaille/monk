@@ -1,4 +1,10 @@
-(in-ns 'monk.core)
+(ns monk.tutorial
+  (:require [monk.core :refer :all]
+            [monk.lens :as lens]
+            [monk.map :as map]
+            [monk.prelude :as u]
+            [clojure.string :as str]
+            [clojure.core :as c]))
 
 
 [:preambule
@@ -10,6 +16,8 @@
  "A `nil` or a `false` occuring anywhere in it will throw a meaningful error message "]
 
 (u/deep-check
+ :all
+
  [:introduction
 
   "The overall purpose of the `monk` library is to provide efficent ways to transform and inspect data."
@@ -166,17 +174,17 @@
        (run f {:c 3})))
     "After a successful result, remaining STEPs are not run. As a proof, in this example the `u/boom` STEP (that throws) is never called because the `number?` STEP succeed."
     (c/= 1 (run (< string? number? u/boom)
-             1))]
+                1))]
 
    [:>
     "Similarly to the `<` constructor, the `>` let you build an AND step."
     "It is equivalent to the seq STEP we already discussed."
     (c/= 3
          (run (> c/inc c/inc c/inc)
-           0))
+              0))
     (c/nil? (run
-              (c/list c/inc never u/boom)
-              0))]
+             (c/list c/inc never u/boom)
+             0))]
 
    [:?
     "Optional step."
@@ -203,7 +211,7 @@
     (c/= 2
          (run (cond string? id
                     (> number? c/inc) c/inc)
-           0))]
+              0))]
 
    [:tup
     "When you need to be more strict than using vector steps, you can use tuples."
@@ -580,7 +588,7 @@
    "The `->map` and `->vec` functions let you leverage those protocol implementations."
    (c/= [guard c/number?]
         (->vec number?))
-   (c/= {::verb guard ::args [c/number?]}
+   (c/= {:monk.core/verb guard :monk.core/args [c/number?]}
         (->map number?))]]
 
  [:keyword-maps

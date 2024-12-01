@@ -183,8 +183,8 @@
             (set? x) (map vector x x)))
 
     (defn pprewalk
-      "an 'indexed' version of prewalk
-       given walking functions will receive 2 arguments
+      "An 'indexed' version of prewalk.
+       Given walking functions will receive 2 arguments:
        - the path of the visited node
        - the corresponding value"
       ([x f]
