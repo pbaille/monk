@@ -275,7 +275,7 @@
         (c/assert (c/> arity 2) "defmap: should have more than 1 members")
         (c/assert (c/even? arity) "defmap: odd key-values count")
         `(let [m# (c/hash-map ~@kvs)]
-           (def ~predicate-name m#)
+           (defn ~predicate-name [x#] (get x# m#))
            (defn ~name
              ([~arg1] (run (> m# ~add-type) ~parsed))
              ([x# & xs#] (~name (map/build* (c/cons x# xs#))))))))
