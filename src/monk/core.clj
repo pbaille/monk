@@ -175,22 +175,23 @@
   (step/kick x)
   (lens/kick x))
 
-(do :evil
+(do :predicates-definitions
 
     "here we are turning all clojure core predicates into checks"
 
-    (let [core-predicates
-          '[any? associative? boolean? bytes? char? chunked-seq? class? coll? counted? decimal? delay? distinct?
-            double? empty? even? float? fn? future? ident? identical? ifn? indexed? inst? int? integer? isa?
-            keyword? list? map-entry? map? nat-int? neg-int? neg? number? odd? pos-int? pos?
-            qualified-ident? qualified-keyword? qualified-symbol? ratio? rational? record? reversible? satisfies? seq?
-            seqable? sequential? set? simple-ident? simple-keyword? simple-symbol? some? sorted? special-symbol? string?
-            symbol? tagged-literal? true? uri? uuid? var? vector? zero?]]
+    (defmacro create-predicate-functions []
+      (let [core-predicates
+            '[any? associative? boolean? bytes? char? chunked-seq? class? coll? counted? decimal? delay? distinct?
+              double? empty? even? float? fn? future? ident? identical? ifn? indexed? inst? int? integer? isa?
+              keyword? list? map-entry? map? nat-int? neg-int? neg? number? odd? pos-int? pos?
+              qualified-ident? qualified-keyword? qualified-symbol? ratio? rational? record? reversible? satisfies? seq?
+              seqable? sequential? set? simple-ident? simple-keyword? simple-symbol? some? sorted? special-symbol? string?
+              symbol? tagged-literal? true? uri? uuid? var? vector? zero?]]
+        `(do
+           ~@(c/for [sym core-predicates]
+               `(def ~sym (guard ~(c/symbol "clojure.core" (c/name sym))))))))
 
-      (c/doseq [sym core-predicates]
-        (c/eval (c/list 'def sym
-                        (c/list `guard
-                                (c/symbol "clojure.core" (c/name sym)))))))
+    (create-predicate-functions)
 
     (let [e (Exception. "falsy values predicate do not work here")]
       (defn nil? [_] (throw e))
