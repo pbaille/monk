@@ -19,7 +19,8 @@
 
     (defn isnt [x & xs]
       (if-not (every? nil? (cons x xs))
-        (apply boom :isnt x xs)))
+        (apply boom :isnt x xs)
+        true))
 
     (defmacro is [x & xs]
       (let [xval (gensym)]
