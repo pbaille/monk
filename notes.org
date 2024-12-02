@@ -38,3 +38,8 @@ created =false-is-a-value= branch
 Currently monk is intended to be 'used'.
 It is not a common practice in the clojure community for good reasons.
 It conflicts with many tools and is not clojurescript friendly.
+
+** keep and kick
+
+the upd implementation of those lenses is very discutable and certainly incorrect.
+the upd method expects a item level update, it should take a collection update.
