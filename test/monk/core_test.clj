@@ -12,76 +12,126 @@
 (u/check!)
 
 (u/deep-check
- :get
- {:fns [(is 2 (get 2 (gt 1)))
-        (isnt (get 2 (gt 3)))
-        (is 2 (get 2 (gte 2)))
-        (isnt (get 2 (gte 3)))
-        (is 2 (get 1 c/inc))]
+ :all
+ {:fns {:get [(is 2 (get 2 (gt 1)))
+              (isnt (get 2 (gt 3)))
+              (is 2 (get 2 (gte 2)))
+              (isnt (get 2 (gte 3)))
+              (is 2 (get 1 c/inc))]
+        :upd [(is :caught
+                  (try (upd 1 c/inc c/inc)
+                       (catch Exception _ :caught)))]}
 
-  :indexes {:kw [(is 1 (get {:a 1} :a))
-                 (is 1
-                     (get {:a {:b 1}} :a.b)
-                     (get {:a {:b 1}}
-                          (> :a :b))
-                     (get {:a {:b 1}}
-                          (c/list :a :b)))]
-            :ints [(is :a (get [:a :b] 0))
-                   (is :b (get [:a :b] 1))
-                   (is :b (get [:a [:x :b]]
-                               (> 1 1)))
-                   (is :x (get [:a :b :x] -1))
-                   (is :x (get [:a :x :b] -2))
-                   (is :x (get [:a [:c :x] :b] (> -2 -1)))]}
+  :indexes {:kw {:get [(is 1 (get {:a 1} :a))
+                       (is 1
+                           (get {:a {:b 1}} :a.b)
+                           (get {:a {:b 1}}
+                                (> :a :b))
+                           (get {:a {:b 1}}
+                                (c/list :a :b)))]
+                 :upd [(is {:a 2}
+                           (upd {:a 1} :a c/inc))
+                       (is {:a {:b 2}}
+                           (upd {:a {:b 1}} :a.b c/inc))
+                       (isnt (upd {:a 1} :b c/inc))]}
+            :ints {:get [(is :a (get [:a :b] 0))
+                         (is :b (get [:a :b] 1))
+                         (is :b (get [:a [:x :b]]
+                                     (> 1 1)))
+                         (is :x (get [:a :b :x] -1))
+                         (is :x (get [:a :x :b] -2))
+                         (is :x (get [:a [:c :x] :b] (> -2 -1)))]
+                   :upd [(is [1 3 3] (upd [1 2 3] 1 c/inc))
+                         (is [1 [1 3] 3]
+                             (upd [1 [1 2] 3] (> 1 -1) c/inc))]}}
 
-  :trivial [(is 1 (get 1 id))
-            (isnt (get :ok never))
-            (isnt (get nil id))
-            (isnt (get nil never))]
+  :trivial {:get [(is 1 (get 1 id))
+                  (isnt (get :ok never))
+                  (isnt (get nil id))
+                  (isnt (get nil never))]
+            :upd [(is 2
+                      (upd 1 id c/inc))
+                  (isnt (upd nil id id))
+                  (isnt (upd 1 never c/inc))
+                  (isnt (upd nil never c/inc))]}
 
-  :k [(is 4 (get 1 (k 4)))
-      (is 4 (get nil (k 4)))]
+  :k {:get [(is 4 (get 1 (k 4)))
+            (is 4 (get nil (k 4)))]
+      :upd [(is 3 (upd 1 (k 2) c/inc))]}
 
-  :guard [(is 1 (get 1 (guard c/pos?)))
-          (isnt (get 1 (guard c/neg?)))]
+  :guard {:get [(is 1 (get 1 (guard c/pos?)))
+                (isnt (get 1 (guard c/neg?)))]
+          :upd [(is 2 (upd 1 (guard c/pos?) c/inc))]}
 
-  :check [(is 0 (get 0 (check (> number? c/inc))))
-          (isnt (get :a (check (> number? c/inc))))]
+  :check {:get [(is 0 (get 0 (check (> number? c/inc))))
+                (isnt (get :a (check (> number? c/inc))))]
+          :upd [(is 2 (upd 1 (check number?) c/inc))
+                (isnt (upd :a (check number?) c/inc))]}
 
-  := [(is 1 (get 1 (= 1)))
-      (isnt (get 0 (= 1)))]
+  := {:get [(is 1 (get 1 (= 1)))
+            (isnt (get 0 (= 1)))]
+      :upd [(is 2 (upd 1 (= 1) c/inc))
+            (isnt (upd 1 (= 2) c/inc))]}
 
-  :? [(is 1 (get 1 (? (= 1))))
-      (is 0 (get 0 (? (= 1))))]
+  :? {:get [(is 1 (get 1 (? (= 1))))
+            (is 0 (get 0 (? (= 1))))]
+      :upd [(is 2 (upd 1 (? (= 1))
+                       c/inc))
+            (is 2 (upd 2 (? (= 1))
+                       c/inc))]}
 
-  :> [(is 1 (get 0 (> number? c/inc)))
-      (isnt (get :a (> number? c/inc)))]
+  :> {:get [(is 1 (get 0 (> number? c/inc)))
+            (isnt (get :a (> number? c/inc)))]
+      :upd [(is 2 (upd 0 number? (> c/inc c/inc)))
+            (isnt (upd :a number? (> c/inc c/inc)))
+            (is 2 (upd 1 (> number? pos?) c/inc))
+            (isnt (upd 0 (> number? pos?) c/inc))]}
 
-  :< [(let [f (< (> pos? c/inc)
-                 (> neg? c/dec)
-                 zero?)]
-        [(is 2 (get 1 f))
-         (is -2 (get -1 f))
-         (is 0 (get 0 f))])]
+  :< {:get [(let [f (< (> pos? c/inc)
+                       (> neg? c/dec)
+                       zero?)]
+              [(is 2 (get 1 f))
+               (is -2 (get -1 f))
+               (is 0 (get 0 f))])]
+      :upd [(let [f (< number? keyword?)]
+              [(is "1" (upd 1 f c/str))
+               (is ":foo" (upd :foo f c/str))
+               (isnt (upd 'io f c/str))])]}
 
-  :cond [(let [f (cond number? c/-
-                       string? str/capitalize)]
-           [(is -1 (get 1 f))
-            (is "Foo" (get "foo" f))
-            (isnt (get :io f))])]
+  :cond {:get [(let [f (cond number? c/-
+                             string? str/capitalize)]
+                 [(is -1 (get 1 f))
+                  (is "Foo" (get "foo" f))
+                  (isnt (get :io f))])]
+         :upd [(let [f (cond number? pos? string?)]
+                 [(is "1" (upd 1 f c/str))
+                  (isnt (upd -1 f c/str))
+                  (is :foo (upd "foo" f c/keyword))
+                  (isnt (upd :io f id))])]}
 
-  :iterative {:$ [(is [1 2 3]
-                      (get [0 1 2]
-                           ($ c/inc)))
-                  (isnt (get [0 -1 2]
-                             ($ pos?)))]
+  :iterative {:$ {:get [(is [1 2 3]
+                            (get [0 1 2]
+                                 ($ c/inc)))
+                        (isnt (get [0 -1 2]
+                                   ($ pos?)))]
+                  :upd [(is [2 3 4]
+                            (upd [1 2 3]
+                                 ($ number?)
+                                 c/inc))
+                        (isnt (upd [1 :io 2 3]
+                                   ($ number?)
+                                   c/inc))]}
 
-              :keep [(is [1 2 3]
-                         (get [-1 0 1 2 3]
-                              (keep pos?)))
-                     (is [2 3 4]
-                         (get [-1 0 1 2 3]
-                              (keep (> pos? c/inc))))]
+              :keep {:get [(is [1 2 3]
+                               (get [-1 0 1 2 3]
+                                    (keep pos?)))
+                           (is [2 3 4]
+                               (get [-1 0 1 2 3]
+                                    (keep (> pos? c/inc))))]
+                     :upd [(is [1 :a 2 :b 3]
+                               (upd [0 :a 1 :b 2]
+                                    (keep number?)
+                                    c/inc))]}
 
               :filt [(is [1 2 3]
                          (get [-1 0 1 2 3]

@@ -1,9 +1,14 @@
 (ns monk.prelude
   (:refer-clojure :exclude [assert min max])
-  (:require [clojure.string :as str]
-            [clojure.set :as set]
-            [clojure.pprint :refer [pprint]])
-  (:import (clojure.lang IObj MapEntry IMeta IFn)))
+  (:require
+   [clojure.pprint :refer [pprint]]
+   [clojure.string :as str])
+  (:import
+   (clojure.lang
+    IFn
+    IMeta
+    IObj
+    MapEntry)))
 
 (do :print
 
