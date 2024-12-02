@@ -57,7 +57,7 @@
 
 (defn k [x]
   (mk (constantly x)
-      (constantly x)))
+      (fn [_ f] (f x))))
 
 (defn = [x]
   (mk (fn [y] (if (c/= x y) y))
@@ -187,7 +187,7 @@
                     (c/assoc m k v'))))))
 
 '(get {}
-     (default-key :a 0))
+      (default-key :a 0))
 
 (defn keep [s]
   (mk (fn [x] (u/$keep x (f_ (get _ s))))

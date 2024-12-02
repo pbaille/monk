@@ -442,8 +442,8 @@
     "like `id` and `never` it is trivial in itself but useful for composition."
     "The `get` function will always return the value given to `k` (in following examples: the 'hello' string)."
     (c/= "hello" (get 1 (k "hello")))
-    "The `upd` operation discard the given transformation."
-    (c/= "hello" (upd 1 (k "hello") u/boom))]
+    "The `upd` operation applies the given transformation to the constant value."
+    (c/= "Hello" (upd 1 (k "hello") str/capitalize))]
 
    [:equality
     "As we've seen, values like strings, symbols, chars etc... are `equality` lenses, meaning that they succeed only on a value that is equal to them."
