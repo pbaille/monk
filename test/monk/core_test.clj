@@ -128,16 +128,25 @@
                            (is [2 3 4]
                                (get [-1 0 1 2 3]
                                     (keep (> pos? c/inc))))]
-                     :upd [(is [1 :a 2 :b 3]
+                     :upd ["the upd impl is very discutable"
+                           (is [1 :a 2 :b 3]
                                (upd [0 :a 1 :b 2]
                                     (keep number?)
-                                    c/inc))]}
+                                    c/inc)
+                               (get [0 :a 1 :b 2]
+                                    ($ (cond number? c/inc
+                                             id))))]}
 
-              :filt [(is [1 2 3]
-                         (get [-1 0 1 2 3]
-                              (filt pos?))
-                         (get [-1 0 1 2 3]
-                              (filt (> pos? c/inc))))]
+              :filt {:get [(is [1 2 3]
+                               (get [-1 0 1 2 3]
+                                    (filt pos?))
+                               (get [-1 0 1 2 3]
+                                    (filt (> pos? c/inc))))]
+                     :upd ["the upd impl is very discutable"
+                           (is [-1 0 2 3 4]
+                               (upd [-1 0 1 2 3]
+                                    (filt pos?)
+                                    c/inc))]}
               :kick [(is [-1 0]
                          (get [-1 0 1 2 3]
                               (kick pos?)))]}
